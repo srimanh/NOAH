@@ -28,18 +28,39 @@ const BLOCKLIST: { re: RegExp; reason: string }[] = [
 
 /** Dangerous indicators in a shell command — require confirmation. */
 const DANGEROUS_CMD = [
-  /\brm\b/i,
+  // --- deletion ---
+  /\b(rm|rmdir|unlink|shred)\b/i,
+  /\bfind\b[^|]*-delete\b/i,
+  /\bfind\b[^|]*-exec\s+(rm|unlink|shred)\b/i,
+  /\btruncate\b/i,
+  // --- creation / file mutation ---
+  /\b(touch|mkdir|mktemp)\b/i,
+  /\b(cp|mv|ln|rsync|install)\b/i,
+  /\b(tee|dd|sed)\b.*-i/i, // in-place edits
+  /\b(tee|dd)\b/i,
+  // --- privilege / packages / network / services ---
   /\bsudo\b/i,
-  /\bmv\b/i,
-  /\b(brew|apt|apt-get|dnf|pacman|yum|port)\s+(install|remove|uninstall|upgrade)/i,
-  /\b(npm|pip|pip3|gem|cargo)\s+(install|uninstall)/i,
+  /\b(brew|apt|apt-get|dnf|pacman|yum|port|snap|flatpak)\s+(install|remove|uninstall|upgrade|update|purge)/i,
+  /\b(npm|pnpm|yarn|pip|pip3|gem|cargo|go|gh)\s+(install|add|remove|uninstall)/i,
   /\b(curl|wget)\b/i, // network fetch
   /\b(systemctl|launchctl|service)\b/i,
   /\bkillall?\b/i,
-  /\bchmod\b|\bchown\b/i,
-  /\bgit\s+push\b/i,
+  /\b(chmod|chown|chgrp)\b/i,
+  /\bgit\s+(push|reset|clean|checkout\s+--)/i,
   />\s*\/etc\//i,
 ];
+
+/**
+ * Detect output redirection that writes to a real file (creates/overwrites).
+ * Ignores safe sinks (/dev/null, /dev/stdout, /dev/stderr) and fd dups (2>&1, >&2).
+ */
+function writesViaRedirect(cmd: string): boolean {
+  const stripped = cmd
+    .replace(/\d*>>?\s*\/dev\/(null|stdout|stderr)/gi, "")
+    .replace(/&>>?\s*\/dev\/null/gi, "")
+    .replace(/\d*>&\d*/g, "");
+  return />>?/.test(stripped);
+}
 
 /** Tools that mutate state — confirm by default. */
 const MUTATING_TOOLS = new Set(["write", "edit", "package", "service"]);
@@ -61,10 +82,13 @@ export function classify(toolName: string, input: unknown): Verdict {
     }
   }
 
-  // 2) Bash with dangerous indicators — confirm.
+  // 2) Bash with dangerous indicators or file-writing redirects — confirm.
   if (toolName === "bash" && command) {
     for (const re of DANGEROUS_CMD) {
       if (re.test(command)) return { action: "confirm", reason: "potentially destructive command" };
+    }
+    if (writesViaRedirect(command)) {
+      return { action: "confirm", reason: "command writes to a file" };
     }
     return { action: "allow", reason: "read-only / safe command" };
   }

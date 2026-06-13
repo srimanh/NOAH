@@ -91,8 +91,8 @@ without passing through it. That is the unbypassable safety guarantee.
 | Verdict | Examples | Behaviour |
 |---|---|---|
 | `deny` | `rm -rf /`, fork bomb, `mkfs`, `dd of=/dev/disk`, `shutdown` | Hard-blocked, no override |
-| `confirm` | install/remove, `sudo`, `rm`, `mv`, `curl`, write/edit, `package` | Asks before running |
-| `allow` | `ls`, `cat`, `grep`, `find`, read | Runs freely |
+| `confirm` | any create/delete/write (`rm`, `rmdir`, `unlink`, `touch`, `mkdir`, `cp`, `mv`, `>` redirects, `find -delete`, …), `sudo`, install/remove, `curl`, write/edit, `package` | Asks before running |
+| `allow` | `ls`, `cat`, `grep`, `find`, `df`, redirects to `/dev/null`, read | Runs freely |
 
 ---
 
