@@ -6,7 +6,8 @@
  */
 
 const noColorEnv = "NO_COLOR" in process.env && process.env.NO_COLOR !== "";
-export const COLOR = process.stdout.isTTY === true && !noColorEnv;
+const forceColor = process.env.NOAH_COLOR === "1";
+export const COLOR = forceColor || (process.stdout.isTTY === true && !noColorEnv);
 export const UNICODE = process.env.NOAH_ASCII !== "1";
 
 function wrap(open: number, close: number) {
@@ -54,4 +55,23 @@ export function truncate(s: string, width: number): string {
   if (visibleLen(s) <= width) return s;
   const ell = UNICODE ? "…" : "...";
   return s.slice(0, Math.max(0, width - ell.length)) + ell;
+}
+
+/** Word-wrap plain text to a visible width (no ANSI inside expected). */
+export function wordWrap(text: string, width: number): string[] {
+  const out: string[] = [];
+  for (const para of text.split("\n")) {
+    let line = "";
+    for (const word of para.split(/\s+/)) {
+      if (!word) continue;
+      if (line && visibleLen(line) + 1 + visibleLen(word) > width) {
+        out.push(line);
+        line = word;
+      } else {
+        line = line ? `${line} ${word}` : word;
+      }
+    }
+    out.push(line);
+  }
+  return out;
 }
