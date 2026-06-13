@@ -29,6 +29,15 @@ test("system prompt: states the enforced safety contract", () => {
   assert.match(NOAH_SYSTEM_PROMPT, /audit/i);
 });
 
+test("system prompt: states the AI System Administrator doctrine", () => {
+  // understand → analyze → recommend (severity) → approve → execute
+  assert.match(NOAH_SYSTEM_PROMPT, /system administrator/i);
+  assert.match(NOAH_SYSTEM_PROMPT, /\bsystem tool\b/i, "tells it to read telemetry first");
+  assert.match(NOAH_SYSTEM_PROMPT, /impact|severity/i);
+  assert.match(NOAH_SYSTEM_PROMPT, /recommend/i);
+  assert.match(NOAH_SYSTEM_PROMPT, /before (installing|making|changing)/i, "pre-flight checks");
+});
+
 test("system prompt: does not hardcode date/cwd (pi appends those)", () => {
   assert.doesNotMatch(NOAH_SYSTEM_PROMPT, /Current date:/);
   assert.doesNotMatch(NOAH_SYSTEM_PROMPT, /Current working directory:/);
