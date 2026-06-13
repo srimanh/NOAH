@@ -1,0 +1,26 @@
+{
+  "name": "noah-agent",
+  "version": "0.1.0",
+  "description": "NOAH — Native Operating-system Agentic Harness. Natural language controls your OS, autonomously and safely.",
+  "type": "module",
+  "bin": {
+    "noah": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "noah": "node dist/cli.js",
+    "start": "node dist/cli.js"
+  },
+  "keywords": ["agent", "llm", "os", "cli", "automation", "safety"],
+  "license": "MIT",
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.79.2",
+    "typebox": "^1.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
