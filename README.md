@@ -46,6 +46,11 @@ noah --log                     # view the audit trail
 
 Without `npm link`, run via `node dist/cli.js "..."` or `npm run dev -- "..."`.
 
+Preview the terminal UI (all panel types, no LLM needed):
+```bash
+npm run preview
+```
+
 ---
 
 ## Usage
@@ -105,10 +110,16 @@ src/
 ├── tools/package.ts      # abstract package tool → platform adapter
 ├── platform/adapter.ts   # PlatformAdapter interface + macOS/Linux impl
 ├── prompt/system.ts      # explain-mode guidance
+├── ui/                   # terminal experience (ANSI, no framework)
+│   ├── ansi.ts            # color/style primitives (TTY + NO_COLOR aware)
+│   ├── box.ts             # round / heavy / block panels
+│   ├── badge.ts           # status badges (INFO/RUNNING/SUCCESS/WARNING/BLOCKED)
+│   ├── render.ts          # NOAH panels (request, tool card, safety, audit, result)
+│   └── preview.ts         # `npm run preview` — view all panels offline
 └── safety/
     ├── policy.ts         # classify() — deny / confirm / allow
     ├── extension.ts      # pi.on(tool_call) gate + pi.on(tool_result) audit
-    ├── confirm.ts        # terminal confirmation prompt
+    ├── confirm.ts        # SAFETY REVIEW confirmation prompt
     └── audit.ts          # JSONL audit log + reader
 ```
 

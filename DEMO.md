@@ -12,6 +12,10 @@ clear
 ```
 Keep a second terminal open with `DEMO.md` for talking points.
 
+> **Visuals:** NOAH renders panels (REQUEST / TOOL cards / SAFETY REVIEW / SAFETY
+> BLOCK / AUDIT / NOAH stream). Preview them anytime with `npm run preview`.
+> Use a dark terminal, font ≥ 18pt, wide window so panels don't wrap.
+
 ---
 
 ## The 5 beats
