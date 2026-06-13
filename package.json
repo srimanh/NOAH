@@ -11,12 +11,14 @@
     "dev": "tsx src/cli.ts",
     "noah": "node dist/cli.js",
     "preview": "node dist/ui/preview.js",
+    "test": "node --import tsx --test $(find src -name '*.test.ts')",
     "start": "node dist/cli.js"
   },
   "keywords": ["agent", "llm", "os", "cli", "automation", "safety"],
   "license": "MIT",
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.79.2",
+    "@earendil-works/pi-tui": "^0.79.2",
     "typebox": "^1.2.8"
   },
   "devDependencies": {
