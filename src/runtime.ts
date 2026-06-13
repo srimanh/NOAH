@@ -29,6 +29,7 @@ import { systemTool } from "./tools/system.js";
 import { logsTool } from "./tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "./prompt/system.js";
 import { cavemanExtension, type CavemanLevel } from "./agent/caveman.js";
+import { loadExtensions, activeFactories } from "./ext/loader.js";
 
 /** Built-in pi tools + NOAH abstract OS tools. */
 export const NOAH_TOOLS = [
@@ -57,6 +58,8 @@ export interface NoahConfigOptions {
   getCavemanLevel?: () => CavemanLevel;
   /** Host-supplied confirmation (TUI). Falls back to ctx.ui / readline. */
   confirm?: (req: { toolName: string; command: string; reason: string }) => Promise<boolean>;
+  /** Extra extension factories (built-in shims + discovered user/project extensions). */
+  extraExtensions?: ExtensionFactory[];
 }
 
 export interface NoahSessionConfig {
@@ -78,6 +81,7 @@ export function noahSessionConfig(opts: NoahConfigOptions): NoahSessionConfig {
     extensionFactories: [
       safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes, confirm: opts.confirm }),
       cavemanExtension(getCaveman),
+      ...(opts.extraExtensions ?? []),
     ],
   };
 }
@@ -109,7 +113,7 @@ export interface BuildOptions extends NoahConfigOptions {
 export async function buildNoahRuntime(opts: BuildOptions): Promise<AgentSessionRuntime> {
   if (opts.dryRun) process.env.NOAH_DRY_RUN = "1";
   const { authStorage, modelRegistry, model } = await noahWiring(opts);
-  const cfg = noahSessionConfig(opts);
+  const cfg = noahSessionConfig({ ...opts, extraExtensions: activeFactories(await loadExtensions()) });
   const scopedModels = modelRegistry.getAvailable().map((m) => ({ model: m }));
 
   return createAgentSessionRuntime(
@@ -159,7 +163,7 @@ export async function createNoahSession(
 ): Promise<CreateNoahSessionResult> {
   if (opts.dryRun) process.env.NOAH_DRY_RUN = "1";
   const { authStorage, modelRegistry, model } = await noahWiring(opts);
-  const cfg = noahSessionConfig(opts);
+  const cfg = noahSessionConfig({ ...opts, extraExtensions: activeFactories(await loadExtensions()) });
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: process.cwd(),

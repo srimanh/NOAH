@@ -78,6 +78,7 @@ Or run a **local** model with [Ollama](https://ollama.com) (`ollama pull qwen2.5
 noah                              # interactive AI-SysAdmin console (TUI)
 noah "install docker and verify"  # send a task on startup
 noah doctor                       # full machine health report (no LLM)
+noah benchmark                    # run the task suite; export md + json reports
 noah --dry-run "free up space"    # preview; make no changes
 noah --print "show big files"     # single-shot, no TUI
 noah --rpc                        # headless JSON-RPC (embed NOAH)
@@ -123,6 +124,23 @@ session.dispose();
 
 Also exported: `classify` (safety policy), `platform` (OS adapter),
 `collectSnapshot`/`assessHealth` (telemetry), `buildNoahRuntime` (for RPC).
+
+---
+
+## Extensions
+
+NOAH ships built-in provider shims and auto-discovers your own extensions from
+`~/.noah/extensions` (user) and `./extensions` (project). Each is a module with a
+default-exported pi extension factory; a broken extension is isolated and never
+blocks the others. Loaded extensions and their health appear in `/extensions`
+and the `noah doctor` report.
+
+```js
+// ~/.noah/extensions/hello.mjs
+export default function (pi) {
+  pi.on("before_agent_start", (event) => ({ systemPrompt: event.systemPrompt }));
+}
+```
 
 ---
 

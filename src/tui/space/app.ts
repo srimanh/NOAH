@@ -25,6 +25,7 @@ import { collectSnapshot } from "../../sys/probe.js";
 import { assessHealth } from "../../sys/health.js";
 import { formatDoctor } from "../../sys/report.js";
 import { UsageBar } from "./usage.js";
+import { loadExtensions, activeFactories, type ExtensionRecord } from "../../ext/loader.js";
 import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } from "../../agent/caveman.js";
 import { authGate } from "../../agent/auth-gate.js";
 import { spawn } from "node:child_process";
@@ -111,6 +112,9 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
       };
     });
 
+  // Discover extensions (built-in shims + ~/.noah/extensions + ./extensions).
+  const extRecords: ExtensionRecord[] = await loadExtensions();
+
   const resourceLoader = new DefaultResourceLoader({
     cwd: process.cwd(),
     agentDir: getAgentDir(),
@@ -119,6 +123,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
     extensionFactories: [
       safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes, confirm }),
       cavemanExtension(() => cavemanLevel),
+      ...activeFactories(extRecords),
     ],
   });
   await resourceLoader.reload();
@@ -418,7 +423,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
       }
       case "doctor": {
         const snap = await collectSnapshot();
-        sys(formatDoctor(snap, assessHealth(snap)));
+        sys(formatDoctor(snap, assessHealth(snap), extRecords));
         break;
       }
       case "compact": {
@@ -430,15 +435,18 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
         }
         break;
       }
-      case "extensions":
-        sys([
-          `${G.node} active extensions:`,
-          `${G.check} safety-gate    confirmation + blocklist + dry-run`,
-          `${G.check} audit-log      every action recorded to .noah/audit.jsonl`,
-          `${cavemanLevel === "off" ? G.dot : G.check} caveman        token-saver terse mode (/caveman)`,
-          `${G.check} auto-compact   context compression to cut tokens (/compact)`,
-        ]);
+      case "extensions": {
+        const lines = [`${G.node} extensions:`];
+        lines.push(`${G.check} safety-gate    confirmation + blocklist + dry-run`);
+        lines.push(`${G.check} audit-log      every action recorded to .noah/audit.jsonl`);
+        lines.push(`${cavemanLevel === "off" ? G.dot : G.check} caveman        token-saver terse mode (/caveman)`);
+        for (const r of extRecords) {
+          const g = r.status === "loaded" ? G.check : G.cross;
+          lines.push(`${g} ${r.name}  ${r.source}${r.error ? `  — ${r.error}` : ""}`);
+        }
+        sys(lines, extRecords.some((r) => r.status === "error") ? "warn" : "info");
         break;
+      }
       case "theme":
         sys([`${G.node} NOAH uses a fixed cinematic theme (blue · black). More coming soon.`]);
         break;

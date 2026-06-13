@@ -51,7 +51,9 @@
     "safety",
     "anthropic",
     "ollama",
-    "system-administrator"
+    "system-administrator",
+    "benchmark",
+    "extensions"
   ],
   "license": "MIT",
   "dependencies": {

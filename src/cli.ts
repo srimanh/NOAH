@@ -16,6 +16,7 @@ import { collectSnapshot } from "./sys/probe.js";
 import { assessHealth } from "./sys/health.js";
 import { formatDoctor } from "./sys/report.js";
 import { runNoahBenchmark } from "./modes/benchmark.js";
+import { loadExtensions } from "./ext/loader.js";
 import { printAuditLog } from "./safety/audit.js";
 import { classify } from "./safety/policy.js";
 import { buildRegistry } from "./llm/registry.js";
@@ -75,8 +76,8 @@ async function main(): Promise<void> {
 
   if (argv[0] === "doctor" || argv.includes("--doctor")) {
     console.log(ui.brand());
-    const snap = await collectSnapshot();
-    console.log(formatDoctor(snap, assessHealth(snap)).join("\n"));
+    const [snap, exts] = await Promise.all([collectSnapshot(), loadExtensions()]);
+    console.log(formatDoctor(snap, assessHealth(snap), exts).join("\n"));
     return;
   }
 
