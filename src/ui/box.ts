@@ -45,8 +45,12 @@ export function drawBox(body: string[], opts: BoxOptions = {}): string {
   const seg = width + 2; // dashes span between corners
 
   // Top border with optional title (left) and status (right).
-  const titleStr = opts.title ? ` ${opts.title} ` : "";
-  const statusStr = opts.status ? ` ${opts.status} ` : "";
+  let titleStr = opts.title ? ` ${opts.title} ` : "";
+  let statusStr = opts.status ? ` ${opts.status} ` : "";
+  const avail = seg - 2; // room between the lead and trail border dashes
+  // Drop the status tag, then the title, if they cannot fit the top border.
+  if (visibleLen(titleStr) + visibleLen(statusStr) > avail) statusStr = "";
+  if (visibleLen(titleStr) > avail) titleStr = "";
   const used = 1 + visibleLen(titleStr) + visibleLen(statusStr) + 1; // lead + trail h
   const fill = c.h.repeat(Math.max(0, seg - used));
   const top =

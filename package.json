@@ -11,6 +11,7 @@
     "dev": "tsx src/cli.ts",
     "noah": "node dist/cli.js",
     "preview": "node dist/ui/preview.js",
+    "preview:tui": "node dist/tui/preview.js",
     "test": "node --import tsx --test $(find src -name '*.test.ts')",
     "start": "node dist/cli.js"
   },
