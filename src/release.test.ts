@@ -25,7 +25,8 @@ test("release: package.json has the npm metadata publishers expect", () => {
 });
 
 test("release: bin, exports, files are publish-correct", () => {
-  assert.equal(pkg.bin.noah, "./dist/cli.js");
+  // canonical form (no leading ./) avoids npm's publish bin warning
+  assert.equal(pkg.bin.noah, "dist/cli.js");
   assert.equal(pkg.exports["."], "./dist/sdk.js");
   assert.ok(pkg.files.includes("dist") && pkg.files.includes("themes"));
 });

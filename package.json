@@ -13,7 +13,7 @@
     "url": "https://github.com/srimanh/NOAH/issues"
   },
   "bin": {
-    "noah": "./dist/cli.js"
+    "noah": "dist/cli.js"
   },
   "exports": {
     ".": "./dist/sdk.js",
