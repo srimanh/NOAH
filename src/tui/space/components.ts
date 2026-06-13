@@ -50,7 +50,7 @@ export function heroLogo(width: number): string[] {
   }
   const lines = LOGO.map((row, i) => center(TINT[i](row), width));
   const glow = center(C.ghost("▔".repeat(Math.min(LOGO_W, width))), width);
-  const tag = center(d(C.faint("A G E N T I C   O P E R A T I N G   S Y S T E M")), width);
+  const tag = center(d(C.faint("Native Operating-system Agentic Harness")), width);
   return clamp(["", "", ...lines, glow, "", tag, ""], width);
 }
 

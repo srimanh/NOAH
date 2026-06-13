@@ -17,11 +17,18 @@ import { visibleLen } from "../../ui/ansi.js";
 const fits = (lines: string[], w: number) => lines.every((l) => visibleLen(l) <= w);
 const fakeInput = { render: () => ["\x1b_pi:c\x07"], invalidate() {} } as any;
 
-test("heroLogo: big centered NOAH wordmark within width", () => {
+test("heroLogo: big centered NOAH wordmark + full-name tagline within width", () => {
   const lines = heroLogo(80);
   assert.match(lines.join("\n"), /█|N O A H/);
-  assert.match(lines.join("\n"), /AGENTIC|A G E N T I C/);
+  assert.match(lines.join("\n"), /Native Operating-system Agentic Harness/);
+  assert.doesNotMatch(lines.join("\n"), /AGENTIC OPERATING SYSTEM|A G E N T I C/);
   assert.ok(fits(lines, 80));
+});
+
+test("heroLogo: tagline degrades gracefully on a narrow terminal", () => {
+  const lines = heroLogo(30);
+  assert.match(lines.join("\n"), /N O A H|NOAH/);
+  assert.ok(fits(lines, 30));
 });
 
 test("Splash: shows tips on a fresh session, hides them otherwise", () => {
