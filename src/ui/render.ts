@@ -36,6 +36,16 @@ export function sectionHeader(label: string, status: Status): string {
   return `\n  ${badge(status)}  ${dim(label)}`;
 }
 
+/** Header shown when NOAH starts streaming its response. */
+export function responseHeader(): string {
+  return `\n  ${cyan(bold(dot))} ${bold(white("NOAH"))}`;
+}
+
+/** The dim left-bar prefix used for streamed response lines. */
+export function barPrefix(): string {
+  return `  ${dim(bar)} `;
+}
+
 /** A text block under a left bar (Pi-style), word-wrapped to panel width. */
 export function barLines(text: string, paint: (s: string) => string = dim): string {
   return wordWrap(text, WIDTH)
@@ -149,6 +159,11 @@ export function checkVerdict(command: string, action: "allow" | "confirm", reaso
 /** Small status note line. */
 export function note(text: string, status: Status = "info"): string {
   return `  ${badge(status)}  ${dim(text)}`;
+}
+
+/** A separating rule. */
+export function divider(): string {
+  return "\n" + rule();
 }
 
 export { dot };

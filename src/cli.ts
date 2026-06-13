@@ -11,9 +11,9 @@
 import { runNoah } from "./session.js";
 import { printAuditLog } from "./safety/audit.js";
 import { classify } from "./safety/policy.js";
-import { denyBanner } from "./safety/confirm.js";
+import * as ui from "./ui/render.js";
 
-const BANNER = "\x1b[32m🌿 NOAH\x1b[0m — Native Operating-system Agentic Harness";
+const BANNER = "NOAH — Native Operating-system Agentic Harness";
 
 function usage(): void {
   console.log(`${BANNER}
@@ -36,12 +36,10 @@ Flags:
 function checkCommand(command: string): void {
   const v = classify("bash", { command });
   if (v.action === "deny") {
-    denyBanner(command, v.reason);
+    console.log(ui.safetyBlock(command, v.reason));
     return;
   }
-  const icon = v.action === "confirm" ? "\x1b[33m⚠️  CONFIRM" : "\x1b[32m✅ ALLOW";
-  console.log(`${icon}\x1b[0m  ${command}\n\x1b[2m   → ${v.reason}\x1b[0m`);
-  if (v.action === "confirm") console.log("\x1b[2m   NOAH would ask for your approval before running this.\x1b[0m");
+  console.log(ui.checkVerdict(command, v.action, v.reason));
 }
 
 async function main(): Promise<void> {
@@ -65,7 +63,7 @@ async function main(): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    console.log(`${BANNER}\n`);
+    console.log(ui.brand());
     checkCommand(command);
     return;
   }
@@ -85,7 +83,6 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.log(`${BANNER}\n`);
   try {
     await runNoah({ prompt, dryRun, autoYes });
   } catch (err) {

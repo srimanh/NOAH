@@ -9,8 +9,9 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { classify } from "./policy.js";
-import { confirmInTerminal, denyBanner } from "./confirm.js";
+import { confirmInTerminal } from "./confirm.js";
 import { appendAudit } from "./audit.js";
+import * as ui from "../ui/render.js";
 
 export interface SafetyOptions {
   dryRun: boolean;
@@ -33,7 +34,7 @@ export const safetyExtension =
 
       // 1) Catastrophic → hard block, no override.
       if (verdict.action === "deny") {
-        denyBanner(command || event.toolName, verdict.reason);
+        process.stdout.write("\n" + ui.safetyBlock(command || event.toolName, verdict.reason) + "\n");
         return { block: true, reason: verdict.reason };
       }
 
