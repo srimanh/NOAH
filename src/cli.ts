@@ -15,6 +15,7 @@ import { runNoahRpc } from "./modes/rpc.js";
 import { collectSnapshot } from "./sys/probe.js";
 import { assessHealth } from "./sys/health.js";
 import { formatDoctor } from "./sys/report.js";
+import { runNoahBenchmark } from "./modes/benchmark.js";
 import { printAuditLog } from "./safety/audit.js";
 import { classify } from "./safety/policy.js";
 import { buildRegistry } from "./llm/registry.js";
@@ -32,6 +33,7 @@ Usage:
   noah --print "show my biggest files"  Single-shot, no TUI (scripts/demos)
   noah --dry-run "set up a venv"         Preview steps; make no changes
   noah doctor                           Full machine health report (no LLM)
+  noah benchmark                        Run the task benchmark; export md + json
   noah --log                            Print the audit trail
 
 Flags:
@@ -75,6 +77,12 @@ async function main(): Promise<void> {
     console.log(ui.brand());
     const snap = await collectSnapshot();
     console.log(formatDoctor(snap, assessHealth(snap)).join("\n"));
+    return;
+  }
+
+  if (argv[0] === "benchmark" || argv.includes("--benchmark")) {
+    const mIdx = argv.indexOf("--model");
+    await runNoahBenchmark({ model: mIdx !== -1 ? argv[mIdx + 1] : undefined });
     return;
   }
 
