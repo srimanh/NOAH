@@ -10,8 +10,12 @@
     ".": "./dist/sdk.js",
     "./sdk": "./dist/sdk.js"
   },
+  "engines": {
+    "node": ">=20.6.0"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/cli.js",
+    "prepare": "npm run build",
     "dev": "tsx src/cli.ts",
     "noah": "npm run build && npm run dev",
     "preview": "node dist/ui/preview.js",
