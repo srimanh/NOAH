@@ -20,6 +20,8 @@ import { networkTool } from "../../tools/network.js";
 import { systemTool } from "../../tools/system.js";
 import { logsTool } from "../../tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "../../prompt/system.js";
+import { Dashboard, dashboardData, type DashboardData } from "./dashboard.js";
+import { collectSnapshot } from "../../sys/probe.js";
 import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } from "../../agent/caveman.js";
 import { authGate } from "../../agent/auth-gate.js";
 import { spawn } from "node:child_process";
@@ -139,7 +141,17 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   const footer = new Footer(() => ({ model: state.model, safety: state.safety, busy: state.busy, caveman: cavemanLevel }));
   inputArea.addChild(inputBox);
 
+  // Startup health dashboard — visible on the fresh screen, hidden once chatting.
+  let dash: DashboardData | null = null;
+  const dashArea = new Container();
+  dashArea.addChild(new Dashboard(() => dash));
+  void collectSnapshot().then((snap) => {
+    dash = dashboardData(snap);
+    tui.requestRender();
+  });
+
   tui.addChild(new Splash(() => entries.length === 0));
+  tui.addChild(dashArea);
   tui.addChild(transcript);
   tui.addChild(palette);
   tui.addChild(inputArea);
@@ -424,6 +436,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
       }
       case "clear":
         entries.length = 0;
+        if (dash && dashArea.children.length === 0) dashArea.addChild(new Dashboard(() => dash));
         sync();
         break;
       case "quit":
@@ -436,6 +449,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   }
 
   async function submitPrompt(text: string): Promise<void> {
+    dashArea.clear(); // hide the launch dashboard once the conversation starts
     // Auth gate: session-local /logout, then real credential check.
     const prov = session.model?.provider;
     if (prov && loggedOut.has(prov)) {
