@@ -37,13 +37,24 @@ export const safetyExtension =
         return { block: true, reason: verdict.reason };
       }
 
-      // 2) Dry-run → neutralise side effects, let the plan run visibly.
+      // 2) Dry-run → neutralise ALL side effects, keep the plan visible.
       if (opts.dryRun) {
-        if (event.toolName === "bash" && command) {
+        if (event.toolName === "bash") {
+          // Rewrite to a harmless echo so the step is shown but does nothing.
           const safe = command.replace(/"/g, '\\"');
-          (event.input as { command: string }).command = `echo "[DRY-RUN] would run: ${safe}"`;
+          (event.input as { command: string }).command = command
+            ? `echo "[DRY-RUN] would run: ${safe}"`
+            : `echo "[DRY-RUN] bash"`;
+          return undefined;
         }
-        return undefined; // allowed (neutralised)
+        // Any non-bash mutating tool (write/edit/package/service) must not execute.
+        if (verdict.action !== "allow") {
+          return {
+            block: true,
+            reason: `[DRY-RUN] would ${event.toolName}${command ? `: ${command}` : ""} — skipped (no changes made)`,
+          };
+        }
+        return undefined; // read-only tools are safe to run in dry-run
       }
 
       // 3) Dangerous → require explicit confirmation.
