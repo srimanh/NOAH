@@ -1,8 +1,17 @@
 {
   "name": "noah-agent",
   "version": "0.1.0",
-  "description": "NOAH — Native Operating-system Agentic Harness. Natural language controls your OS, autonomously and safely.",
+  "description": "NOAH — an AI System Administrator. Natural language controls your OS: it reads the machine, analyzes impact, recommends, and executes safely with an audited, confirm-gated trail. Cross-platform (Linux + macOS).",
   "type": "module",
+  "author": "Sriman",
+  "homepage": "https://github.com/srimanh/NOAH#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/srimanh/NOAH.git"
+  },
+  "bugs": {
+    "url": "https://github.com/srimanh/NOAH/issues"
+  },
   "bin": {
     "noah": "./dist/cli.js"
   },
@@ -16,6 +25,7 @@
   "scripts": {
     "build": "tsc && chmod +x dist/cli.js",
     "prepare": "npm run build",
+    "prepublishOnly": "npm run build && npm test",
     "dev": "tsx src/cli.ts",
     "noah": "npm run build && npm run dev",
     "preview": "node dist/ui/preview.js",
@@ -29,11 +39,19 @@
   ],
   "keywords": [
     "agent",
+    "ai",
     "llm",
+    "sysadmin",
+    "devops",
     "os",
     "cli",
+    "tui",
+    "terminal",
     "automation",
-    "safety"
+    "safety",
+    "anthropic",
+    "ollama",
+    "system-administrator"
   ],
   "license": "MIT",
   "dependencies": {
