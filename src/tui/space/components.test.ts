@@ -12,7 +12,7 @@ import {
   Palette,
   Selector,
 } from "./components.js";
-import { visibleLen } from "../../ui/ansi.js";
+import { visibleLen, stripAnsi } from "../../ui/ansi.js";
 
 const fits = (lines: string[], w: number) => lines.every((l) => visibleLen(l) <= w);
 const fakeInput = { render: () => ["\x1b_pi:c\x07"], invalidate() {} } as any;
@@ -36,11 +36,18 @@ test("Splash: shows tips on a fresh session, hides them otherwise", () => {
   assert.doesNotMatch(new Splash(() => false).render(90).join("\n"), /install software/);
 });
 
-test("AssistantBlock streams; ToolBlock transitions; blocks fit narrow", () => {
+test("AssistantBlock: renders markdown clean (no artifacts) and fits width", () => {
   const a = new AssistantBlock();
-  a.append("on ");
-  a.append("it");
-  assert.equal(a.value, "on it");
+  a.append("## Plan\n- install **docker**\n- run `docker run hello`");
+  assert.equal(a.value, "## Plan\n- install **docker**\n- run `docker run hello`");
+  const txt = stripAnsi(a.render(60).join("\n"));
+  assert.match(txt, /Plan/);
+  assert.match(txt, /docker/);
+  assert.doesNotMatch(txt, /\*\*|`|^#/m, "no markdown artifacts");
+  for (const w of [28, 60]) assert.ok(fits(a.render(w), w), `fits ${w}`);
+});
+
+test("ToolBlock transitions; UserBlock/SystemBlock fit narrow", () => {
   const t = new ToolBlock("package", "install htop", "running");
   assert.match(t.render(60).join(""), /running/);
   t.set("ok");

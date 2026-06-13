@@ -6,6 +6,7 @@ import type { Component, Input } from "@earendil-works/pi-tui";
 import { visibleWidth, truncateToWidth } from "@earendil-works/pi-tui";
 import { wordWrap, UNICODE } from "../../ui/ansi.js";
 import { C, G, b, d } from "./theme.js";
+import { renderMarkdown } from "./markdown.js";
 
 /* ----------------------------------------------------------------- helpers */
 
@@ -99,7 +100,9 @@ export class AssistantBlock implements Component {
   }
   render(width: number): string[] {
     const w = Math.max(10, width - 6);
-    const body = wordWrap(this.text || "…", w).map((l) => C.text(l));
+    // renderMarkdown already applies inline styles; keep lines as-is to avoid
+    // ANSI reset bleed from an outer color wrap.
+    const body = renderMarkdown(this.text || "…", w);
     return clamp(["", ` ${C.comet(G.node)}  ${b(C.nebula("NOAH"))}`, ...body.map((l) => `    ${l}`)], width);
   }
   invalidate(): void {}
