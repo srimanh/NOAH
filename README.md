@@ -1,132 +1,169 @@
-# 🌿 NOAH
+# NOAH
 
-### Native Operating-system Agentic Harness
+### An AI System Administrator for your terminal
 
-> Natural language controls your computer — **autonomously, and it can't hurt you.**
+> Tell your machine what you want in plain English. NOAH **reads the machine**,
+> **analyzes the impact**, **recommends** the best action, and only then
+> **executes — with your approval, and a full audit trail.**
 
-NOAH is a CLI agent that understands plain English and operates your OS — shell, files,
-packages — through a **safety gate**. Every dangerous action is confirmed, every
-catastrophic action is hard-blocked, and every action is logged to an audit trail.
+NOAH is not another agent that blindly runs commands. It behaves like a senior
+sysadmin: it inspects real telemetry (disk, memory, processes, services, logs)
+*before* it acts, explains what will change, asks before anything dangerous, and
+**hard-blocks** the catastrophic. Cross-platform — Linux and macOS.
 
-Built on the [Pi](https://pi.dev) agent SDK (`@earendil-works/pi-coding-agent`).
+```
+                ███╗   ██╗  ██████╗   █████╗  ██╗  ██╗
+                ████╗  ██║ ██╔═══██╗ ██╔══██╗ ██║  ██║
+                ██╔██╗ ██║ ██║   ██║ ███████║ ███████║
+                ██║╚██╗██║ ██║   ██║ ██╔══██║ ██╔══██║
+                ██║ ╚████║ ╚██████╔╝ ██║  ██║ ██║  ██║
+                ╚═╝  ╚═══╝  ╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═╝
+           A G E N T I C   O P E R A T I N G   S Y S T E M
+
+ ◆ SYSTEM  macOS 14.5  ·  WARN
+   memory  ██████████████░░░░ 82%  (13.1 GB / 16.0 GB)
+   disk    █████████████████░ 86%  (70 GB free on /)
+ ◆ recommendations
+   ▸ Disk filling up       / at 86%
+   ▸ 3 updates available   Run a system update to stay current
+ ╭──────────────────────────────────────────────────────────╮
+ │ › how healthy is my machine?                             │
+ ╰──────────────────────────────────────────────────────────╯
+  ◆ claude-sonnet-4-5  ·  safety on        / commands · enter send
+```
 
 ---
 
 ## Why NOAH
 
-Wiring an LLM to a shell is trivial. Making it **safe** — and *demonstrably* safe — is not.
-That safety layer is the product:
+A coding copilot edits files in a repo. **NOAH operates the machine.** The
+difference is trust and awareness:
 
-- **Autonomous** — give a multi-step goal, NOAH plans and chains the steps itself.
-- **Explain-first** — states its plan before acting.
-- **Gated** — confirms writes/installs/deletes; **hard-blocks** `rm -rf /`, fork bombs, `mkfs`, …
-- **Accountable** — every executed action appended to `.noah/audit.jsonl`.
-- **Dry-run** — preview the whole plan without touching your system.
-- **Cross-platform by design** — one abstract tool, per-OS adapters (macOS today, Linux next).
+| | Coding copilots | **NOAH** |
+|---|---|---|
+| Knows the machine | guesses | **reads live telemetry first** |
+| Destructive ops | runs them | **blocklist + confirm + dry-run** |
+| Accountability | none | **every action → `.noah/audit.jsonl`** |
+| Cross-platform | shells out, guesses apt/brew | **one tool, auto-routed per OS** |
+| Runs offline | rarely | **local Ollama, nothing leaves the box** |
+
+**Examples**
+- *"Install Docker"* → checks disk/memory/existing setup → recommends → installs → verifies.
+- *"Why is my laptop slow?"* → root-cause from real top processes + memory pressure, with severity.
+- *"Free up space"* → finds large files, stale caches → suggests **safe** cleanup → confirms.
+- *"How healthy is my machine?"* → full report with prioritized actions.
 
 ---
 
-## Quick Start
+## Install
 
 ```bash
-# 1. Auth: log in once with your Claude Pro/Max (or set ANTHROPIC_API_KEY)
-npx @earendil-works/pi   # then: /login → Claude Pro/Max
-
-# 2. Install NOAH
-npm install
-npm run build
-npm link        # optional: makes `noah` global
-
-# 3. Use it
-noah "show my 5 biggest files"
-noah --dry-run "set up a python project with git and a venv"
-noah "install htop"            # asks before running
-noah --log                     # view the audit trail
+npm install -g noah-agent
+noah            # launch the interactive console
 ```
 
-Without `npm link`, run via `node dist/cli.js "..."` or `npm run dev -- "..."`.
+Authenticate once (Claude Pro/Max or an API key) from inside NOAH:
 
-Preview the terminal UI (all panel types, no LLM needed):
-```bash
-npm run preview
 ```
+/login          # pick Anthropic · GitHub Copilot · ChatGPT/Codex
+```
+
+Or run a **local** model with [Ollama](https://ollama.com) (`ollama pull qwen2.5-coder`).
 
 ---
 
 ## Usage
 
+```bash
+noah                              # interactive AI-SysAdmin console (TUI)
+noah "install docker and verify"  # send a task on startup
+noah doctor                       # full machine health report (no LLM)
+noah --dry-run "free up space"    # preview; make no changes
+noah --print "show big files"     # single-shot, no TUI
+noah --rpc                        # headless JSON-RPC (embed NOAH)
+noah --list-models                # available models (✓ = ready)
+noah --check "rm -rf /"           # see how the safety gate classifies a command
+noah --log                        # print the audit trail
 ```
-noah "<natural language task>"
 
-Flags:
-  --dry-run     Preview the plan; do not execute (side effects neutralised)
-  --yes, -y     Auto-approve confirmation prompts
-  --log         Print the audit trail and exit
-  --help, -h    Show this help
+**In-console commands:** `/doctor` · `/model` · `/login` · `/logout` ·
+`/caveman` (token saver) · `/compact` · `/audit` · `/help` · `/clear` · `/quit`.
+
+---
+
+## Safety
+
+The gate lives in the **agent pipeline, not inside any tool** — nothing runs
+without passing through it.
+
+| Verdict | Examples | Behaviour |
+|---|---|---|
+| `deny` | `rm -rf /`, fork bomb, `mkfs`, `dd of=/dev/disk`, `shutdown` | Hard-blocked, no override |
+| `confirm` | installs, `sudo`, deletes, writes, service/network changes | Asks before running |
+| `allow` | `ls`, `grep`, telemetry reads, redirects to `/dev/null` | Runs freely |
+
+Dry-run neutralizes side effects. Every executed action is appended to
+`.noah/audit.jsonl`.
+
+---
+
+## Embed it (SDK)
+
+```ts
+import { createNoahSession } from "noah-agent/sdk";
+
+const { session } = await createNoahSession({ dryRun: false, autoYes: false });
+session.subscribe((e) => {
+  if (e.type === "message_update" && e.assistantMessageEvent.type === "text_delta")
+    process.stdout.write(e.assistantMessageEvent.delta);
+});
+await session.prompt("install htop and start it");
+session.dispose();
 ```
+
+Also exported: `classify` (safety policy), `platform` (OS adapter),
+`collectSnapshot`/`assessHealth` (telemetry), `buildNoahRuntime` (for RPC).
 
 ---
 
 ## How it works
 
 ```
-noah "install htop"
+  Your request ── reads telemetry (system · logs) ── analyzes impact
         │
         ▼
-  AgentSession (Pi SDK)      loop · sessions · compaction = free
-        │  pi.on("tool_call") / pi.on("tool_result")
-        ▼
-  SAFETY GATE                classify → deny / confirm / allow  + audit
+  SAFETY GATE        classify → deny / confirm / allow   + audit trail
         │
         ▼
-  TOOLS  read · bash · edit · write · grep · find · ls · package
+  TOOLS  bash · files · package · service · network · system · logs
         │
         ▼
-  PLATFORM ADAPTER           macOS (brew) · Linux (apt) — same abstract tool
+  PLATFORM ADAPTER   Linux (apt/dnf/pacman/zypper · systemd) · macOS (brew · launchd)
         │
         ▼
       Host OS
 ```
 
-The gate lives in the **agent pipeline, not inside any tool** — so no tool can run
-without passing through it. That is the unbypassable safety guarantee.
-
-### Safety classification
-
-| Verdict | Examples | Behaviour |
-|---|---|---|
-| `deny` | `rm -rf /`, fork bomb, `mkfs`, `dd of=/dev/disk`, `shutdown` | Hard-blocked, no override |
-| `confirm` | any create/delete/write (`rm`, `rmdir`, `unlink`, `touch`, `mkdir`, `cp`, `mv`, `>` redirects, `find -delete`, …), `sudo`, install/remove, `curl`, write/edit, `package` | Asks before running |
-| `allow` | `ls`, `cat`, `grep`, `find`, `df`, redirects to `/dev/null`, read | Runs freely |
+Built on the [Pi](https://pi.dev) agent SDK (`@earendil-works/pi-coding-agent`)
+for the loop, sessions, streaming, and multi-provider transport; NOAH adds the
+OS tool layer, the telemetry/health engine, and the safety gate.
 
 ---
 
-## Project layout
+## Development
 
-```
-src/
-├── cli.ts                # entry: parse argv + flags
-├── session.ts            # createAgentSession() + wiring
-├── tools/package.ts      # abstract package tool → platform adapter
-├── platform/adapter.ts   # PlatformAdapter interface + macOS/Linux impl
-├── prompt/system.ts      # explain-mode guidance
-├── ui/                   # terminal experience (ANSI, no framework)
-│   ├── ansi.ts            # color/style primitives (TTY + NO_COLOR aware)
-│   ├── box.ts             # round / heavy / block panels
-│   ├── badge.ts           # status badges (INFO/RUNNING/SUCCESS/WARNING/BLOCKED)
-│   ├── render.ts          # NOAH panels (request, tool card, safety, audit, result)
-│   └── preview.ts         # `npm run preview` — view all panels offline
-└── safety/
-    ├── policy.ts         # classify() — deny / confirm / allow
-    ├── extension.ts      # pi.on(tool_call) gate + pi.on(tool_result) audit
-    ├── confirm.ts        # SAFETY REVIEW confirmation prompt
-    └── audit.ts          # JSONL audit log + reader
+```bash
+git clone https://github.com/srimanh/NOAH
+cd NOAH && npm install
+npm run build
+npm test          # full suite
+npm run dev -- "how healthy is my machine?"
 ```
 
-See [`HACKATHON.md`](./HACKATHON.md) for the PRD + LLD and [`NOAH.md`](./NOAH.md) for the full vision.
+Requires Node ≥ 20.6.
 
 ---
 
 ## License
 
-MIT
+[MIT](./LICENSE) © Sriman
