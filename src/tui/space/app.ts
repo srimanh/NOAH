@@ -24,6 +24,7 @@ import { Dashboard, dashboardData, type DashboardData } from "./dashboard.js";
 import { collectSnapshot } from "../../sys/probe.js";
 import { assessHealth } from "../../sys/health.js";
 import { formatDoctor } from "../../sys/report.js";
+import { UsageBar } from "./usage.js";
 import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } from "../../agent/caveman.js";
 import { authGate } from "../../agent/auth-gate.js";
 import { spawn } from "node:child_process";
@@ -142,6 +143,20 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   const inputArea = new Container();
   const inputBox = new InputBox(input, () => ({ busy: state.busy }));
   const footer = new Footer(() => ({ model: state.model, safety: state.safety, busy: state.busy, caveman: cavemanLevel }));
+  const usageBar = new UsageBar(() => {
+    try {
+      const st = session.getSessionStats();
+      return {
+        model: state.model,
+        input: st.tokens.input,
+        output: st.tokens.output,
+        total: st.tokens.total,
+        contextPercent: st.contextUsage?.percent ?? null,
+      };
+    } catch {
+      return { model: state.model, input: 0, output: 0, total: 0, contextPercent: null };
+    }
+  });
   inputArea.addChild(inputBox);
 
   // Startup health dashboard — visible on the fresh screen, hidden once chatting.
@@ -158,6 +173,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   tui.addChild(transcript);
   tui.addChild(palette);
   tui.addChild(inputArea);
+  tui.addChild(usageBar);
   tui.addChild(footer);
   tui.setFocus(input);
 
