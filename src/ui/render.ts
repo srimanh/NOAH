@@ -66,7 +66,8 @@ export function toolCard(
   output?: string[],
 ): string {
   const body: string[] = [];
-  if (command) body.push(dim("$ ") + truncate(command, WIDTH - 2));
+  const prefix = name === "bash" ? dim("$ ") : "";
+  if (command) body.push(prefix + truncate(command, WIDTH - 2));
   if (output && output.length) {
     for (const line of output.slice(0, 6)) body.push(dim(truncate(line, WIDTH)));
   }

@@ -10,6 +10,7 @@
     "build": "tsc",
     "dev": "tsx src/cli.ts",
     "noah": "node dist/cli.js",
+    "preview": "node dist/ui/preview.js",
     "start": "node dist/cli.js"
   },
   "keywords": ["agent", "llm", "os", "cli", "automation", "safety"],
