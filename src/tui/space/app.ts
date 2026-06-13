@@ -22,6 +22,8 @@ import { logsTool } from "../../tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "../../prompt/system.js";
 import { Dashboard, dashboardData, type DashboardData } from "./dashboard.js";
 import { collectSnapshot } from "../../sys/probe.js";
+import { assessHealth } from "../../sys/health.js";
+import { formatDoctor } from "../../sys/report.js";
 import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } from "../../agent/caveman.js";
 import { authGate } from "../../agent/auth-gate.js";
 import { spawn } from "node:child_process";
@@ -57,6 +59,7 @@ const COMMANDS: PaletteItem[] = [
   { name: "login", desc: "auth status / set an API key" },
   { name: "logout", desc: "sign out of a provider" },
   { name: "caveman", desc: "token-saver terse mode (off/lite/full/ultra/micro)" },
+  { name: "doctor", desc: "full machine health report" },
   { name: "compact", desc: "compress context to save tokens" },
   { name: "extensions", desc: "active extensions" },
   { name: "theme", desc: "appearance" },
@@ -395,6 +398,11 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
             ? `${G.node} caveman mode off — normal responses.`
             : `${G.check} caveman:${cavemanLevel} — terse replies, ~75% fewer output tokens. Applies next message.`,
         ]);
+        break;
+      }
+      case "doctor": {
+        const snap = await collectSnapshot();
+        sys(formatDoctor(snap, assessHealth(snap)));
         break;
       }
       case "compact": {

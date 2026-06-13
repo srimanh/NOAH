@@ -12,6 +12,9 @@ import { runNoah } from "./session.js";
 import { runNoahInteractive } from "./tui/app.js";
 import { runNoahSpace } from "./tui/space/app.js";
 import { runNoahRpc } from "./modes/rpc.js";
+import { collectSnapshot } from "./sys/probe.js";
+import { assessHealth } from "./sys/health.js";
+import { formatDoctor } from "./sys/report.js";
 import { printAuditLog } from "./safety/audit.js";
 import { classify } from "./safety/policy.js";
 import { buildRegistry } from "./llm/registry.js";
@@ -28,6 +31,7 @@ Usage:
   noah "install htop and start it"      TUI, sending your task first
   noah --print "show my biggest files"  Single-shot, no TUI (scripts/demos)
   noah --dry-run "set up a venv"         Preview steps; make no changes
+  noah doctor                           Full machine health report (no LLM)
   noah --log                            Print the audit trail
 
 Flags:
@@ -64,6 +68,13 @@ async function main(): Promise<void> {
 
   if (argv.includes("--log")) {
     printAuditLog();
+    return;
+  }
+
+  if (argv[0] === "doctor" || argv.includes("--doctor")) {
+    console.log(ui.brand());
+    const snap = await collectSnapshot();
+    console.log(formatDoctor(snap, assessHealth(snap)).join("\n"));
     return;
   }
 

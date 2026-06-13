@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { procLabel, formatSnapshot, formatDisks, formatProcesses } from "./report.js";
+import { procLabel, formatSnapshot, formatDisks, formatProcesses, formatDoctor } from "./report.js";
+import { assessHealth } from "./health.js";
 import type { SystemSnapshot } from "./probe.js";
 
 const SNAP: SystemSnapshot = {
@@ -40,6 +41,20 @@ test("formatDisks: real mounts with human sizes and percent", () => {
   assert.match(txt, /\//);
   assert.match(txt, /86%/);
   assert.match(txt, /GB/);
+});
+
+test("formatDoctor: status header + telemetry + prioritized recommendations", () => {
+  const lines = formatDoctor(SNAP, assessHealth(SNAP));
+  const txt = lines.join("\n");
+  assert.match(txt, /HEALTH/i);
+  assert.match(txt, /critical/i, "failed service + 86% disk → critical");
+  assert.match(txt, /macOS 14\.5/);
+  assert.match(txt, /Recommend|nginx\.service|Disk/i);
+});
+
+test("formatDoctor: clean machine reports all clear", () => {
+  const ok: SystemSnapshot = { os: "Linux", memory: { total: 100, used: 20, usedPct: 20 }, disks: [{ mount: "/", total: 100, used: 30, available: 70, usedPct: 30 }], topProcesses: [], failedServices: [] };
+  assert.match(formatDoctor(ok, assessHealth(ok)).join("\n"), /all clear|ok/i);
 });
 
 test("formatProcesses: clean names, cpu + mem", () => {

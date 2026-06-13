@@ -4,6 +4,7 @@
  * add their own.
  */
 import { humanBytes, type SystemSnapshot } from "./probe.js";
+import type { HealthReport } from "./health.js";
 
 /** Clean a process command path into a readable name. */
 export function procLabel(command: string): string {
@@ -24,6 +25,20 @@ export function formatDisks(snap: SystemSnapshot): string[] {
 
 export function formatProcesses(snap: SystemSnapshot): string[] {
   return snap.topProcesses.map((p) => `${procLabel(p.command)}  cpu ${p.cpu}%  mem ${p.mem}%  (pid ${p.pid})`);
+}
+
+/** Full deterministic health report (no LLM) for `/doctor` and `noah doctor`. */
+export function formatDoctor(snap: SystemSnapshot, health: HealthReport): string[] {
+  const out: string[] = [`SYSTEM HEALTH — ${health.status.toUpperCase()}`, ""];
+  for (const l of formatSnapshot(snap)) out.push(l);
+  out.push("");
+  if (health.items.length) {
+    out.push("Recommendations (by priority):");
+    for (const it of health.items) out.push(`  [${it.severity}] ${it.title} — ${it.detail}`);
+  } else {
+    out.push("All clear — nothing needs attention.");
+  }
+  return out;
 }
 
 export function formatSnapshot(snap: SystemSnapshot): string[] {
