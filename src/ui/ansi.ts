@@ -38,10 +38,35 @@ export function bg256(code: number) {
   return (s: string): string => (COLOR ? `\x1b[48;5;${code}m${s}\x1b[49m` : s);
 }
 
-/** Visible length, ignoring ANSI escape sequences. */
+/** Truecolor foreground (24-bit). Falls back to plain text without color. */
+export function rgb(r: number, g: number, b: number) {
+  return (s: string): string => (COLOR ? `\x1b[38;2;${r};${g};${b}m${s}\x1b[39m` : s);
+}
+/** Truecolor background (24-bit). */
+export function bgRgb(r: number, g: number, b: number) {
+  return (s: string): string => (COLOR ? `\x1b[48;2;${r};${g};${b}m${s}\x1b[49m` : s);
+}
+/** Parse "#rrggbb" → truecolor foreground fn. */
+export function hex(color: string) {
+  const n = parseInt(color.replace(/^#/, ""), 16);
+  return rgb((n >> 16) & 255, (n >> 8) & 255, n & 255);
+}
+export function bgHex(color: string) {
+  const n = parseInt(color.replace(/^#/, ""), 16);
+  return bgRgb((n >> 16) & 255, (n >> 8) & 255, n & 255);
+}
+
+// eslint-disable-next-line no-control-regex
+const ESC_SEQ = /\x1b\[[0-9;]*m|\x1b[_\]][^\x07]*\x07/g;
+
+/** Strip SGR colors and OSC/APC sequences (incl. pi-tui's CURSOR_MARKER). */
+export function stripAnsi(s: string): string {
+  return s.replace(ESC_SEQ, "");
+}
+
+/** Visible length, ignoring color + control sequences (cursor marker is zero-width). */
 export function visibleLen(s: string): number {
-  // eslint-disable-next-line no-control-regex
-  return s.replace(/\x1b\[[0-9;]*m/g, "").length;
+  return stripAnsi(s).length;
 }
 
 /** Pad a string to width based on visible length. */

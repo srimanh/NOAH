@@ -40,7 +40,8 @@ const DANGEROUS_CMD = [
   /\b(tee|dd)\b/i,
   // --- privilege / packages / network / services ---
   /\bsudo\b/i,
-  /\b(brew|apt|apt-get|dnf|pacman|yum|port|snap|flatpak)\s+(install|remove|uninstall|upgrade|update|purge)/i,
+  /\b(brew|apt|apt-get|dnf|zypper|yum|port|snap|flatpak)\s+(install|remove|uninstall|upgrade|update|purge)/i,
+  /\bpacman\s+-[A-Za-z]*[SRU]/i, // pacman uses flags: -S install, -R remove, -Syu update
   /\b(npm|pnpm|yarn|pip|pip3|gem|cargo|go|gh)\s+(install|add|remove|uninstall)/i,
   /\b(curl|wget)\b/i, // network fetch
   /\b(systemctl|launchctl|service)\b/i,
@@ -93,11 +94,23 @@ export function classify(toolName: string, input: unknown): Verdict {
     return { action: "allow", reason: "read-only / safe command" };
   }
 
-  // 3) Mutating tools — confirm.
+  // 3) Network tool — only `fetch` (HTTP GET) is risky; gate it (exfiltration).
+  if (toolName === "network") {
+    const action =
+      input && typeof input === "object" && "action" in input
+        ? String((input as { action: unknown }).action)
+        : "";
+    if (action === "fetch") {
+      return { action: "confirm", reason: "network fetch downloads from the internet" };
+    }
+    return { action: "allow", reason: "read-only network inspection" };
+  }
+
+  // 4) Mutating tools — confirm.
   if (MUTATING_TOOLS.has(toolName)) {
     return { action: "confirm", reason: `${toolName} modifies the system` };
   }
 
-  // 4) Everything else (read, grep, find, ls) — allow.
+  // 5) Everything else (read, grep, find, ls) — allow.
   return { action: "allow", reason: "safe tool" };
 }

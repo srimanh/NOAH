@@ -10,13 +10,19 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { safetyExtension } from "./safety/extension.js";
 import { packageTool } from "./tools/package.js";
-import { NOAH_GUIDANCE } from "./prompt/system.js";
+import { serviceTool } from "./tools/service.js";
+import { networkTool } from "./tools/network.js";
+import { NOAH_SYSTEM_PROMPT } from "./prompt/system.js";
+import { buildRegistry } from "./llm/registry.js";
+import { resolveModel, type RegistryLike } from "./llm/resolve.js";
 import * as ui from "./ui/render.js";
 
 export interface RunOptions {
   prompt: string;
   dryRun: boolean;
   autoYes: boolean;
+  /** Optional "provider/id" override (from --model). */
+  model?: string;
 }
 
 const out = (s: string) => process.stdout.write(s);
@@ -27,6 +33,8 @@ function describeArgs(toolName: string, args: unknown): string {
   const a = args as Record<string, unknown>;
   if (typeof a.command === "string") return a.command;
   if (toolName === "package") return `${a.action ?? ""} ${a.pkg ?? ""}`.trim();
+  if (toolName === "service") return `${a.action ?? ""} ${a.name ?? ""}`.trim();
+  if (toolName === "network") return `${a.action ?? ""} ${a.target ?? ""}`.trim();
   if (typeof a.path === "string") return String(a.path);
   return JSON.stringify(a);
 }
@@ -37,17 +45,30 @@ export async function runNoah(opts: RunOptions): Promise<void> {
   const resourceLoader = new DefaultResourceLoader({
     cwd: process.cwd(),
     agentDir: getAgentDir(),
-    agentsFilesOverride: (current) => ({
-      agentsFiles: [...current.agentsFiles, { path: "/virtual/NOAH.md", content: NOAH_GUIDANCE }],
-    }),
+    // Replace Pi's "expert coding assistant" base with NOAH's OS-operator prompt.
+    systemPromptOverride: () => NOAH_SYSTEM_PROMPT,
+    // Don't auto-append the user's APPEND_SYSTEM.md — NOAH owns its prompt.
+    appendSystemPromptOverride: () => [],
     extensionFactories: [safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes })],
   });
   await resourceLoader.reload();
 
+  // Layer 1 — provider abstraction: assemble the registry (local Ollama + cloud)
+  // and resolve which model this run uses.
+  const { authStorage, modelRegistry } = await buildRegistry();
+  const model = resolveModel(modelRegistry as unknown as RegistryLike, {
+    flagModel: opts.model,
+    envModel: process.env.NOAH_MODEL,
+  });
+
   const { session } = await createAgentSession({
     resourceLoader,
-    tools: ["read", "bash", "edit", "write", "grep", "find", "ls", "package"],
-    customTools: [packageTool],
+    // resolveModel returns a structural view; it is the registry's real Model.
+    model: model as unknown as NonNullable<Parameters<typeof createAgentSession>[0]>["model"],
+    authStorage,
+    modelRegistry,
+    tools: ["read", "bash", "edit", "write", "grep", "find", "ls", "package", "service", "network"],
+    customTools: [packageTool, serviceTool, networkTool],
     sessionManager: SessionManager.create(process.cwd()),
   });
 
@@ -64,6 +85,7 @@ export async function runNoah(opts: RunOptions): Promise<void> {
 
   try {
     out(ui.brand());
+    out(ui.note(`model: ${model.provider}/${model.id}`, "info") + "\n");
     out(ui.requestPanel(opts.prompt) + "\n");
     if (opts.dryRun) out("\n" + ui.note("dry-run: NOAH will preview steps, not execute them.", "info") + "\n");
 

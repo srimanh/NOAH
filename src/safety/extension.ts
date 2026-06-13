@@ -16,6 +16,8 @@ import * as ui from "../ui/render.js";
 export interface SafetyOptions {
   dryRun: boolean;
   autoYes: boolean;
+  /** Host-provided confirmation (e.g. the space TUI). Takes precedence over ctx.ui/readline. */
+  confirm?: (req: { toolName: string; command: string; reason: string }) => Promise<boolean>;
 }
 
 function commandOf(input: unknown): string {
@@ -28,13 +30,18 @@ function commandOf(input: unknown): string {
 export const safetyExtension =
   (opts: SafetyOptions) =>
   (pi: ExtensionAPI): void => {
-    pi.on("tool_call", async (event) => {
+    pi.on("tool_call", async (event, ctx) => {
       const command = commandOf(event.input);
       const verdict = classify(event.toolName, event.input);
+      // In the TUI/RPC, Pi renders the block/decline itself; only paint our own
+      // panels in plain-CLI mode (no dialog UI).
+      const hasUI = !!ctx?.hasUI;
 
       // 1) Catastrophic → hard block, no override.
       if (verdict.action === "deny") {
-        process.stdout.write("\n" + ui.safetyBlock(command || event.toolName, verdict.reason) + "\n");
+        if (!hasUI) {
+          process.stdout.write("\n" + ui.safetyBlock(command || event.toolName, verdict.reason) + "\n");
+        }
         return { block: true, reason: verdict.reason };
       }
 
@@ -60,11 +67,15 @@ export const safetyExtension =
 
       // 3) Dangerous → require explicit confirmation.
       if (verdict.action === "confirm" && !opts.autoYes) {
-        const ok = await confirmInTerminal({
-          toolName: event.toolName,
-          command,
-          reason: verdict.reason,
-        });
+        const req = { toolName: event.toolName, command, reason: verdict.reason };
+        const ok = opts.confirm
+          ? await opts.confirm(req)
+          : hasUI
+            ? await ctx.ui.confirm(
+                "NOAH safety review",
+                `${verdict.reason}\n\n${event.toolName}${command ? `: ${command}` : ""}`,
+              )
+            : await confirmInTerminal(req);
         if (!ok) return { block: true, reason: "user declined" };
       }
 

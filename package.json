@@ -6,18 +6,34 @@
   "bin": {
     "noah": "./dist/cli.js"
   },
+  "exports": {
+    ".": "./dist/sdk.js",
+    "./sdk": "./dist/sdk.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
-    "noah": "node dist/cli.js",
+    "noah": "npm run build && npm run dev",
     "preview": "node dist/ui/preview.js",
     "preview:tui": "node dist/tui/preview.js",
     "test": "node --import tsx --test $(find src -name '*.test.ts')",
     "start": "node dist/cli.js"
   },
-  "keywords": ["agent", "llm", "os", "cli", "automation", "safety"],
+  "files": [
+    "dist",
+    "themes"
+  ],
+  "keywords": [
+    "agent",
+    "llm",
+    "os",
+    "cli",
+    "automation",
+    "safety"
+  ],
   "license": "MIT",
   "dependencies": {
+    "@earendil-works/pi-ai": "^0.79.2",
     "@earendil-works/pi-coding-agent": "^0.79.2",
     "@earendil-works/pi-tui": "^0.79.2",
     "typebox": "^1.2.8"

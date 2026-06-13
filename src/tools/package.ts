@@ -10,8 +10,16 @@ export const packageTool = defineTool({
   name: "package",
   label: "Package manager",
   description:
-    "Install, remove, or update OS packages via the native package manager " +
-    "(brew on macOS, apt on Linux). Use this instead of raw shell for software management.",
+    "Install, remove, or update OS packages via the platform-native package manager " +
+    "(apt/dnf/pacman/zypper on Linux, brew on macOS) \u2014 NOAH detects the right one. " +
+    "Always prefer this over running apt/brew/etc. in bash: it is cross-platform, is gated " +
+    "by the safety layer, and is recorded in the audit trail. `action` is install, remove, " +
+    "or update; `pkg` is the package name (omit pkg with update to upgrade everything). " +
+    "Returns the package manager's combined output.",
+  promptSnippet: "Install/remove/update OS packages (apt/dnf/pacman/zypper/brew)",
+  promptGuidelines: [
+    "Use the package tool, not apt/brew/dnf/pacman/zypper in bash, to manage software",
+  ],
   parameters: Type.Object({
     action: Type.Union([Type.Literal("install"), Type.Literal("remove"), Type.Literal("update")], {
       description: "What to do",
