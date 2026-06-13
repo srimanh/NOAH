@@ -3,6 +3,36 @@
 > Rehearse this 10×. Run `./scripts/smoke.sh` right before going on stage.
 > Total run time: ~3 minutes. Every beat below is tested and reliable.
 
+---
+
+## ⌨️ Final command sequence (copy-paste order)
+
+```bash
+# --- prep (camera off) ---
+cd /tmp && rm -rf noah-stage && mkdir noah-stage && cd noah-stage && clear
+
+# 1 · capability
+noah "show my 5 largest files, read-only"
+
+# 2 · autonomy + dry-run (then prove nothing was created)
+noah --dry-run "set up a python project: make a folder, init git, add main.py and requirements.txt"
+ls -la
+
+# 3 · control (decline, then approve)
+noah "install htop"      # type: n     (declined)
+noah "install htop"      # type: y     (approved)
+
+# 4 · the wow — deterministic block panels
+noah --check "rm -rf / --no-preserve-root"
+noah --check ":(){ :|:& };:"
+noah --check "mkfs.ext4 /dev/sda"
+
+# 5 · accountability
+noah --log
+```
+
+Keep this block on a second screen. Don't improvise commands on stage.
+
 ## Setup (before judges arrive)
 ```bash
 cd NOAH && npm run build && npm link        # `noah` is global

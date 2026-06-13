@@ -18,7 +18,7 @@ Keep them sparse. You talk; slides anchor. Big text, one idea each.
 *(Visual: a terminal with a scary command + a red ⛔.)*
 
 ### Slide 2 — NOAH
-> **Title:** 🌿 NOAH — Native Operating-system Agentic Harness
+> **Title:** NOAH — Native Operating-system Agentic Harness
 > *Natural language controls your computer — autonomously, and it can't hurt you.*
 - **Autonomous** — give a goal, it plans + chains the steps.
 - **Gated** — confirms changes, **hard-blocks** the catastrophic.
@@ -70,22 +70,30 @@ Record a clean ~3-min screen capture so a live failure never sinks you.
 
 **Tools (mac):** QuickTime → File → New Screen Recording (or `Cmd+Shift+5`). Record terminal + voice.
 
+**Make the panels look their best**
+- Dark terminal theme, font **≥ 18pt**, window **wide** (≥ 100 cols) so panels never wrap.
+- True-color terminal (iTerm2 / Warp / modern Terminal) for the badge colors.
+- Run `npm run preview` once on camera-off to confirm the panels render crisp.
+
 **Pre-record checklist**
 - [ ] `./scripts/smoke.sh` → 8/8.
 - [ ] `pi` → confirm Claude login valid (send one message).
-- [ ] Fresh terminal, big font (≥18pt), clean theme, `cd /tmp && mkdir noah-vid && cd noah-vid`.
-- [ ] `rm -f .noah/audit.jsonl` so the log starts clean.
+- [ ] Fresh terminal, ≥18pt, wide, dark theme, `cd /tmp && mkdir noah-vid && cd noah-vid`.
+- [ ] `rm -rf .noah` so the audit log starts clean.
 - [ ] Close notifications (Do Not Disturb).
 
 **Shot list (record in this exact order, narrate each):**
-1. `clear` then type slowly:
-   `noah "show my 5 largest files, read-only"` → wait for output.
+1. `clear`, then type slowly:
+   `noah "show my 5 largest files, read-only"` → REQUEST panel → TOOL card → ● NOAH result.
 2. `noah --dry-run "set up a python project: folder, git init, main.py, requirements.txt"`
-   → then `ls -la` (show nothing created). Narrate: "dry-run touched nothing."
-3. `noah "install htop"` → at the prompt type `n` (declined). Then re-run, type `y`.
-4. `noah --check "rm -rf / --no-preserve-root"` → ⛔. Then `noah --check ":(){ :|:& };:"` → ⛔.
-5. `noah --log` → show the audit trail.
+   → shows the PLAN + tool cards, then `ls -la` (nothing created). Narrate: "dry-run touched nothing."
+3. `noah "install htop"` → **SAFETY REVIEW** panel appears → type `n` (declined). Re-run, type `y`.
+4. `noah --check "rm -rf / --no-preserve-root"` → big ⛔ **SAFETY BLOCK** panel.
+   Then `noah --check ":(){ :|:& };:"` → ⛔ again. (Pause on this shot — it's the money frame.)
+5. `noah --log` → the audit trail.
 6. *(optional)* the Docker Linux one-liner from `DEMO.md` Beat 6.
+
+> Tip: the ⛔ SAFETY BLOCK panel is the single most memorable frame — hold on it for ~2s.
 
 **After recording:** watch it once. If any beat stutters, re-record just that take. Keep final ≤ 3:30.
 Save as `noah-demo.mp4`. Have it open in a tab at the venue.
