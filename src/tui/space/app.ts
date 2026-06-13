@@ -17,6 +17,8 @@ import { readAudit, appendAudit } from "../../safety/audit.js";
 import { packageTool } from "../../tools/package.js";
 import { serviceTool } from "../../tools/service.js";
 import { networkTool } from "../../tools/network.js";
+import { systemTool } from "../../tools/system.js";
+import { logsTool } from "../../tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "../../prompt/system.js";
 import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } from "../../agent/caveman.js";
 import { authGate } from "../../agent/auth-gate.js";
@@ -45,8 +47,8 @@ export interface SpaceOptions {
   caveman?: CavemanLevel;
 }
 
-const NOAH_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls", "package", "service", "network"];
-const CUSTOM_TOOLS = [packageTool, serviceTool, networkTool];
+const NOAH_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls", "package", "service", "network", "system", "logs"];
+const CUSTOM_TOOLS = [packageTool, serviceTool, networkTool, systemTool, logsTool];
 
 const COMMANDS: PaletteItem[] = [
   { name: "model", desc: "choose a model" },

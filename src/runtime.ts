@@ -25,6 +25,8 @@ import { safetyExtension } from "./safety/extension.js";
 import { packageTool } from "./tools/package.js";
 import { serviceTool } from "./tools/service.js";
 import { networkTool } from "./tools/network.js";
+import { systemTool } from "./tools/system.js";
+import { logsTool } from "./tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "./prompt/system.js";
 import { cavemanExtension, type CavemanLevel } from "./agent/caveman.js";
 
@@ -40,9 +42,11 @@ export const NOAH_TOOLS = [
   "package",
   "service",
   "network",
+  "system",
+  "logs",
 ];
 
-export const NOAH_CUSTOM_TOOLS: ToolDefinition[] = [packageTool, serviceTool, networkTool];
+export const NOAH_CUSTOM_TOOLS: ToolDefinition[] = [packageTool, serviceTool, networkTool, systemTool, logsTool];
 
 export interface NoahConfigOptions {
   dryRun: boolean;

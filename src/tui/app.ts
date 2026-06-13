@@ -23,6 +23,8 @@ import { safetyExtension } from "../safety/extension.js";
 import { packageTool } from "../tools/package.js";
 import { serviceTool } from "../tools/service.js";
 import { networkTool } from "../tools/network.js";
+import { systemTool } from "../tools/system.js";
+import { logsTool } from "../tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "../prompt/system.js";
 import { noahBranding } from "./branding.js";
 
@@ -47,9 +49,11 @@ export const NOAH_TOOLS = [
   "package",
   "service",
   "network",
+  "system",
+  "logs",
 ];
 
-const CUSTOM_TOOLS = [packageTool, serviceTool, networkTool];
+const CUSTOM_TOOLS = [packageTool, serviceTool, networkTool, systemTool, logsTool];
 
 /** Shipped NOAH dark-blue theme (package-root /themes, resolves for src + dist). */
 const NOAH_THEME_PATH = fileURLToPath(new URL("../../themes/noah-dark-blue.json", import.meta.url));

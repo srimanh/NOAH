@@ -12,6 +12,8 @@ import { safetyExtension } from "./safety/extension.js";
 import { packageTool } from "./tools/package.js";
 import { serviceTool } from "./tools/service.js";
 import { networkTool } from "./tools/network.js";
+import { systemTool } from "./tools/system.js";
+import { logsTool } from "./tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "./prompt/system.js";
 import { buildRegistry } from "./llm/registry.js";
 import { resolveModel, type RegistryLike } from "./llm/resolve.js";
@@ -67,8 +69,8 @@ export async function runNoah(opts: RunOptions): Promise<void> {
     model: model as unknown as NonNullable<Parameters<typeof createAgentSession>[0]>["model"],
     authStorage,
     modelRegistry,
-    tools: ["read", "bash", "edit", "write", "grep", "find", "ls", "package", "service", "network"],
-    customTools: [packageTool, serviceTool, networkTool],
+    tools: ["read", "bash", "edit", "write", "grep", "find", "ls", "package", "service", "network", "system", "logs"],
+    customTools: [packageTool, serviceTool, networkTool, systemTool, logsTool],
     sessionManager: SessionManager.create(process.cwd()),
   });
 

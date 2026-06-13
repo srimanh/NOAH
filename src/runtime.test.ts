@@ -3,16 +3,16 @@ import assert from "node:assert/strict";
 import { NOAH_TOOLS, NOAH_CUSTOM_TOOLS, noahSessionConfig } from "./runtime.js";
 import { NOAH_SYSTEM_PROMPT } from "./prompt/system.js";
 
-test("NOAH_TOOLS: the full OS tool set", () => {
-  for (const t of ["read", "bash", "edit", "write", "grep", "find", "ls", "package", "service", "network"]) {
+test("NOAH_TOOLS: the full OS + telemetry tool set", () => {
+  for (const t of ["read", "bash", "edit", "write", "grep", "find", "ls", "package", "service", "network", "system", "logs"]) {
     assert.ok(NOAH_TOOLS.includes(t), `missing ${t}`);
   }
 });
 
-test("NOAH_CUSTOM_TOOLS: package, service, network", () => {
+test("NOAH_CUSTOM_TOOLS: package, service, network, system, logs", () => {
   assert.deepEqual(
     NOAH_CUSTOM_TOOLS.map((t) => t.name).sort(),
-    ["network", "package", "service"],
+    ["logs", "network", "package", "service", "system"],
   );
 });
 

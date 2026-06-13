@@ -22,6 +22,8 @@ Available tools:
 - package: Install, remove, or update OS packages via the native package manager (apt/dnf/pacman/zypper on Linux, brew on macOS)
 - service: Start, stop, restart, enable, disable, or check a system service (systemd on Linux, launchd on macOS)
 - network: Inspect networking (info/ports/connections/ping) and fetch URLs over HTTP
+- system: Read live machine telemetry (OS, memory, disks, top processes, failed services)
+- logs: Read recent system logs (journalctl / unified log), optionally for one unit
 
 In addition to the tools above, you may have access to other custom tools depending on the system.
 
