@@ -19,6 +19,8 @@
 [![tests](https://img.shields.io/badge/tests-177%20passing-brightgreen.svg)](#-development)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-blueviolet.svg)](./CONTRIBUTING.md)
 
+### 🌐 [**Visit the live site →**](https://srimanh.github.io/NOAH/)
+
 > Tell your machine what you want in plain English. NOAH **reads the machine**,
 > **analyzes the impact**, **recommends** the best action, and only then
 > **executes — with your approval, and a full audit trail.**
