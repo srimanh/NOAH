@@ -14,9 +14,10 @@
 ### Native Operating-system Agentic Harness — *an AI System Administrator for your terminal*
 
 [![npm version](https://img.shields.io/npm/v/noah-agent.svg)](https://www.npmjs.com/package/noah-agent)
+[![NOAH CI/CD](https://github.com/srimanh/NOAH/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/srimanh/NOAH/actions/workflows/ci-cd.yml)
 [![license](https://img.shields.io/npm/l/noah-agent.svg)](./LICENSE)
 [![node](https://img.shields.io/node/v/noah-agent.svg)](https://nodejs.org)
-[![tests](https://img.shields.io/badge/tests-177%20passing-brightgreen.svg)](#-development)
+[![tests](https://img.shields.io/badge/tests-180%20passing-brightgreen.svg)](#-development)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-blueviolet.svg)](./CONTRIBUTING.md)
 
 ### 🌐 [**Visit the live site →**](https://srimanh.github.io/NOAH/)
