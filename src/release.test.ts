@@ -45,5 +45,26 @@ test("release: README documents install, the doctor command, and license", () =>
   assert.match(readme, /npm install|npm i /);
   assert.match(readme, /noah-agent|noah /);
   assert.match(readme, /doctor/i, "documents the health report");
-  assert.match(readme, /## License/i);
+  assert.match(readme, /##.*License/i);
+});
+
+test("release: internal/hackathon planning docs are removed from the repo", () => {
+  for (const f of ["noah.md", "HACKATHON.md", "PITCH.md", "DEMO.md", "CHECKLIST.md", "QA.md", "TUI-PLAN.md", "SETUP-AZURE.md"]) {
+    assert.equal(existsSync(root(f)), false, `${f} should be deleted`);
+  }
+});
+
+test("release: a polished README with badges, features, and contributing", () => {
+  const readme = readFileSync(root("README.md"), "utf8");
+  assert.match(readme, /img\.shields\.io|!\[/, "has badges");
+  assert.match(readme, /## .*Features|## \u2728/i, "features section");
+  assert.match(readme, /## .*Contributing/i, "contributing section");
+  assert.match(readme, /\p{Extended_Pictographic}/u, "uses emoji");
+});
+
+test("release: CONTRIBUTING and CODE_OF_CONDUCT exist", () => {
+  assert.ok(existsSync(root("CONTRIBUTING.md")), "CONTRIBUTING.md present");
+  const c = readFileSync(root("CONTRIBUTING.md"), "utf8");
+  assert.match(c, /Red.?\u2192?.?Green|TDD|test/i, "documents the TDD workflow");
+  assert.ok(existsSync(root("CODE_OF_CONDUCT.md")), "CODE_OF_CONDUCT.md present");
 });
