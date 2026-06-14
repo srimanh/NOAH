@@ -8,7 +8,6 @@
 export interface AnyModel {
   provider: string;
   id: string;
-  [key: string]: unknown;
 }
 
 /** Minimal slice of Pi's ModelRegistry that resolution needs (testable seam). */
@@ -46,6 +45,19 @@ function findRef(reg: RegistryLike, ref: string): AnyModel {
   return found;
 }
 
+/** Remove duplicate provider/id entries (some catalogs ship dotted+dashed aliases). */
+export function dedupeModels<M extends AnyModel>(models: M[]): M[] {
+  const seen = new Set<string>();
+  const out: M[] = [];
+  for (const m of models) {
+    const key = `${m.provider}/${m.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(m);
+  }
+  return out;
+}
+
 export function resolveModel(reg: RegistryLike, opts: ResolveOptions): AnyModel {
   if (opts.flagModel) return findRef(reg, opts.flagModel);
   if (opts.envModel) return findRef(reg, opts.envModel);
@@ -62,7 +74,7 @@ export function resolveModel(reg: RegistryLike, opts: ResolveOptions): AnyModel 
 /** Human-readable model list for `--list-models`. ✓ marks models with auth configured. */
 export function formatModelList(reg: RegistryLike): string {
   const available = new Set(reg.getAvailable().map((m) => `${m.provider}/${m.id}`));
-  const all = reg.getAll();
+  const all = dedupeModels(reg.getAll());
   if (all.length === 0) return "No models registered.";
 
   const lines = all.map((m) => {

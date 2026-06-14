@@ -18,7 +18,7 @@ import {
   type CreateAgentSessionRuntimeFactory,
 } from "@earendil-works/pi-coding-agent";
 import { buildRegistry } from "../llm/registry.js";
-import { resolveModel, type RegistryLike } from "../llm/resolve.js";
+import { resolveModel, dedupeModels, type RegistryLike } from "../llm/resolve.js";
 import { safetyExtension } from "../safety/extension.js";
 import { packageTool } from "../tools/package.js";
 import { serviceTool } from "../tools/service.js";
@@ -76,7 +76,7 @@ export async function runNoahInteractive(opts: TuiOptions): Promise<void> {
     envModel: process.env.NOAH_MODEL,
   });
   // All ready models are cycleable with Ctrl+P.
-  const scopedModels = modelRegistry.getAvailable().map((m) => ({ model: m }));
+  const scopedModels = dedupeModels(modelRegistry.getAvailable()).map((m) => ({ model: m }));
 
   const createRuntime: CreateAgentSessionRuntimeFactory = async ({
     cwd,

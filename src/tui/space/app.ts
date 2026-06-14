@@ -11,7 +11,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Container, Input, ProcessTerminal, TUI } from "@earendil-works/pi-tui";
 import { buildRegistry } from "../../llm/registry.js";
-import { resolveModel, type RegistryLike } from "../../llm/resolve.js";
+import { resolveModel, dedupeModels, type RegistryLike } from "../../llm/resolve.js";
 import { safetyExtension } from "../../safety/extension.js";
 import { readAudit, appendAudit } from "../../safety/audit.js";
 import { packageTool } from "../../tools/package.js";
@@ -85,7 +85,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
     flagModel: opts.model,
     envModel: process.env.NOAH_MODEL,
   });
-  const scopedModels = modelRegistry.getAvailable().map((m) => ({ model: m }));
+  const scopedModels = dedupeModels(modelRegistry.getAvailable()).map((m) => ({ model: m }));
 
   const entries: import("@earendil-works/pi-tui").Component[] = [];
   let cavemanLevel: CavemanLevel = opts.caveman ?? "off";
@@ -274,7 +274,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   };
 
   const openModelSelector = () => {
-    const items = modelRegistry.getAvailable().map((m) => ({ id: `${m.provider}/${m.id}`, label: `${m.provider}/${m.id}` }));
+    const items = dedupeModels(modelRegistry.getAvailable()).map((m) => ({ id: `${m.provider}/${m.id}`, label: `${m.provider}/${m.id}` }));
     if (items.length === 0) {
       sys([`${G.cross} no models available. Sign in with /login or start Ollama.`], "warn");
       return;

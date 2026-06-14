@@ -20,7 +20,7 @@ import {
   type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import { buildRegistry } from "./llm/registry.js";
-import { resolveModel, type RegistryLike } from "./llm/resolve.js";
+import { resolveModel, dedupeModels, type RegistryLike } from "./llm/resolve.js";
 import { safetyExtension } from "./safety/extension.js";
 import { packageTool } from "./tools/package.js";
 import { serviceTool } from "./tools/service.js";
@@ -114,7 +114,7 @@ export async function buildNoahRuntime(opts: BuildOptions): Promise<AgentSession
   if (opts.dryRun) process.env.NOAH_DRY_RUN = "1";
   const { authStorage, modelRegistry, model } = await noahWiring(opts);
   const cfg = noahSessionConfig({ ...opts, extraExtensions: activeFactories(await loadExtensions()) });
-  const scopedModels = modelRegistry.getAvailable().map((m) => ({ model: m }));
+  const scopedModels = dedupeModels(modelRegistry.getAvailable()).map((m) => ({ model: m }));
 
   return createAgentSessionRuntime(
     async ({ cwd, sessionManager, sessionStartEvent }) => {
@@ -179,7 +179,7 @@ export async function createNoahSession(
     model: model as unknown as NonNullable<Parameters<typeof createAgentSession>[0]>["model"],
     authStorage,
     modelRegistry,
-    scopedModels: modelRegistry.getAvailable().map((m) => ({ model: m })),
+    scopedModels: dedupeModels(modelRegistry.getAvailable()).map((m) => ({ model: m })),
     tools: cfg.tools,
     customTools: cfg.customTools,
     sessionManager: opts.sessionManager ?? SessionManager.create(process.cwd()),

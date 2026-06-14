@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseModelRef, resolveModel, formatModelList, type RegistryLike } from "./resolve.js";
+import { parseModelRef, resolveModel, formatModelList, dedupeModels, type RegistryLike } from "./resolve.js";
 
 const M = (provider: string, id: string) => ({ provider, id }) as any;
 
@@ -71,6 +71,22 @@ test("resolveModel: unknown explicit ref throws with the ref in the message", ()
 test("resolveModel: no models available throws guidance", () => {
   const reg = fakeRegistry({ all: [M("anthropic", "claude")], available: [] });
   assert.throws(() => resolveModel(reg, {}), /no model/i);
+});
+
+test("dedupeModels: removes duplicate provider/id entries, preserves order", () => {
+  const list = [M("anthropic", "claude-opus-4.8"), M("anthropic", "claude-opus-4.8"), M("ollama", "llama3.1")];
+  const out = dedupeModels(list);
+  assert.equal(out.length, 2);
+  assert.deepEqual(out.map((m) => `${m.provider}/${m.id}`), ["anthropic/claude-opus-4.8", "ollama/llama3.1"]);
+});
+
+test("formatModelList: de-duplicates the listing", () => {
+  const reg = fakeRegistry({
+    all: [M("anthropic", "claude-opus-4.8"), M("anthropic", "claude-opus-4.8")],
+    available: [M("anthropic", "claude-opus-4.8")],
+  });
+  const out = formatModelList(reg);
+  assert.equal(out.match(/anthropic\/claude-opus-4\.8/g)?.length, 1, "listed once");
 });
 
 test("formatModelList: marks availability", () => {
