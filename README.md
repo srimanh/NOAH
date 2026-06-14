@@ -78,7 +78,7 @@ Authenticate once from inside NOAH (or run a local model with [Ollama](https://o
 /login               # Anthropic (Claude Pro/Max) · GitHub Copilot · ChatGPT/Codex
 ```
 
-Requires **Node ≥ 20.6**.
+Requires **Node ≥ 22**.
 
 ---
 
