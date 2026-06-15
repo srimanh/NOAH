@@ -20,7 +20,9 @@ import { loadExtensions } from "./ext/loader.js";
 import { printAuditLog } from "./safety/audit.js";
 import { classify } from "./safety/policy.js";
 import { verifyPinnedDeps, formatViolations } from "./safety/deps.js";
+import { checkForUpdate, currentVersion } from "./agent/update.js";
 import { resolve as resolvePath } from "node:path";
+import { spawnSync } from "node:child_process";
 import { buildRegistry } from "./llm/registry.js";
 import { formatModelList, type RegistryLike } from "./llm/resolve.js";
 import * as ui from "./ui/render.js";
@@ -49,7 +51,9 @@ Flags:
   --model REF      Pick the LLM as provider/id (e.g. ollama/llama3.1)
   --list-models    List available models (✓ = ready) and exit
   --check CMD      Show how NOAH's safety gate would classify a shell command
-  --verify-deps    Verify the pinned pi SDK tree is intact (supply-chain guard)
+  --verify-deps    Verify the pinned core runtime tree is intact (supply-chain guard)
+  update           Upgrade NOAH to the latest published version
+  version, -v      Print the version (and any available update)
   --log            Print the audit trail and exit
   --help, -h       Show this help
 `);
@@ -74,6 +78,23 @@ async function main(): Promise<void> {
 
   if (argv.includes("--log")) {
     printAuditLog();
+    return;
+  }
+
+  if (argv[0] === "update" || argv.includes("--update")) {
+    console.log(ui.brand());
+    console.log(`Updating NOAH (current ${currentVersion()}) → latest…\n`);
+    const r = spawnSync("npm", ["install", "-g", "noah-agent@latest"], { stdio: "inherit" });
+    if (r.status === 0) console.log("\n✓ NOAH updated. Run  noah  to start.");
+    else console.error("\n✗ Update failed. Try:  npm install -g noah-agent@latest");
+    process.exitCode = r.status ?? 1;
+    return;
+  }
+
+  if (argv[0] === "version" || argv.includes("--version") || argv.includes("-v")) {
+    console.log(`noah-agent ${currentVersion()}`);
+    const info = await checkForUpdate({ current: currentVersion() }).catch(() => null);
+    if (info) console.log(info.banner);
     return;
   }
 

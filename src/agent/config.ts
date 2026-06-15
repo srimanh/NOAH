@@ -9,6 +9,10 @@ import { dirname, join } from "node:path";
 
 export interface NoahConfig {
   lastModel?: string;
+  /** Epoch ms of the last npm update check (rate-limits the network probe). */
+  lastUpdateCheck?: number;
+  /** Most recent version seen on the registry (used between checks). */
+  latestKnownVersion?: string;
 }
 
 export const CONFIG_PATH = join(homedir(), ".noah", "config.json");

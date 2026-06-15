@@ -29,6 +29,7 @@ import { loadExtensions, activeFactories, type ExtensionRecord } from "../../ext
 import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } from "../../agent/caveman.js";
 import { authGate } from "../../agent/auth-gate.js";
 import { getLastModel, setLastModel } from "../../agent/config.js";
+import { checkForUpdate, currentVersion } from "../../agent/update.js";
 import { spawn } from "node:child_process";
 import {
   AssistantBlock,
@@ -609,6 +610,12 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   // --- go -------------------------------------------------------------------
   tui.start();
   tui.requestRender();
+  // Best-effort, non-blocking update check (cached to once/day).
+  void checkForUpdate({ current: currentVersion() })
+    .then((info) => {
+      if (info) sys([`${G.node} ${info.banner}`]);
+    })
+    .catch(() => {});
   // First run, not signed in, nothing remembered → connect a model first.
   if (!cloudAuthed && !hadLastModel && !opts.initialMessage) {
     sys([`${G.node} Connect a model to begin — choose a provider to sign in.`]);
