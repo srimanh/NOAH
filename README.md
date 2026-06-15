@@ -215,7 +215,7 @@ noah --verify-deps   # ✓ core dependencies verified — all pinned versions in
 git clone https://github.com/srimanh/NOAH
 cd NOAH && npm install
 npm run build
-npm test          # full suite (177 tests)
+npm test          # full suite (200 tests)
 npm run dev -- "how healthy is my machine?"
 ```
 
@@ -233,7 +233,8 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] Telemetry-grounded analysis · dashboard · `doctor`
 - [x] Safety gate + audit · dry-run · cross-platform adapters
 - [x] Extensions · benchmark · SDK · RPC
-- [ ] Undo / rollback of changes
+- [x] Supply-chain hardening (bundled + verified runtime) · update notifications
+- [ ] Undo / rollback of changes (transactional ops + snapshots)
 - [ ] Playbooks (`/onboard-mac`, `/harden-ssh`)
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA
