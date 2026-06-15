@@ -19,6 +19,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { buildRegistry } from "../llm/registry.js";
 import { resolveModel, dedupeModels, type RegistryLike } from "../llm/resolve.js";
+import { getLastModel, setLastModel } from "../agent/config.js";
 import { safetyExtension } from "../safety/extension.js";
 import { packageTool } from "../tools/package.js";
 import { serviceTool } from "../tools/service.js";
@@ -74,7 +75,9 @@ export async function runNoahInteractive(opts: TuiOptions): Promise<void> {
   const model = resolveModel(modelRegistry as unknown as RegistryLike, {
     flagModel: opts.model,
     envModel: process.env.NOAH_MODEL,
+    lastModel: getLastModel(),
   });
+  setLastModel(`${model.provider}/${model.id}`);
   // All ready models are cycleable with Ctrl+P.
   const scopedModels = dedupeModels(modelRegistry.getAvailable()).map((m) => ({ model: m }));
 

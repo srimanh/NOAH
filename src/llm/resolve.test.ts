@@ -57,6 +57,28 @@ test("resolveModel: flag overrides env", () => {
   assert.equal(m.id, "a");
 });
 
+test("resolveModel: restores last-used model before falling back", () => {
+  const reg = fakeRegistry({
+    all: [M("anthropic", "claude-3-5-haiku"), M("anthropic", "claude-sonnet-4-5")],
+    available: [M("anthropic", "claude-3-5-haiku"), M("anthropic", "claude-sonnet-4-5")],
+  });
+  // without lastModel → first available (haiku)
+  assert.equal(resolveModel(reg, {}).id, "claude-3-5-haiku");
+  // with lastModel → restores it
+  assert.equal(resolveModel(reg, { lastModel: "anthropic/claude-sonnet-4-5" }).id, "claude-sonnet-4-5");
+  // flag still wins over lastModel
+  assert.equal(
+    resolveModel(reg, { flagModel: "anthropic/claude-3-5-haiku", lastModel: "anthropic/claude-sonnet-4-5" }).id,
+    "claude-3-5-haiku",
+  );
+});
+
+test("resolveModel: stale last-used model is ignored, falls through", () => {
+  const reg = fakeRegistry({ available: [M("anthropic", "claude-sonnet-4-5")] });
+  // lastModel no longer available → don't crash, use first available
+  assert.equal(resolveModel(reg, { lastModel: "anthropic/gone" }).id, "claude-sonnet-4-5");
+});
+
 test("resolveModel: falls back to first available", () => {
   const reg = fakeRegistry({ available: [M("anthropic", "claude"), M("ollama", "x")] });
   const m = resolveModel(reg, {});

@@ -28,6 +28,7 @@ import { UsageBar } from "./usage.js";
 import { loadExtensions, activeFactories, type ExtensionRecord } from "../../ext/loader.js";
 import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } from "../../agent/caveman.js";
 import { authGate } from "../../agent/auth-gate.js";
+import { getLastModel, setLastModel } from "../../agent/config.js";
 import { spawn } from "node:child_process";
 import {
   AssistantBlock,
@@ -81,11 +82,18 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
 
   // --- agent wiring ---------------------------------------------------------
   const { authStorage, modelRegistry } = await buildRegistry();
+  const hadLastModel = !!getLastModel();
   const model = resolveModel(modelRegistry as unknown as RegistryLike, {
     flagModel: opts.model,
     envModel: process.env.NOAH_MODEL,
+    lastModel: getLastModel(),
   });
+  setLastModel(`${model.provider}/${model.id}`);
   const scopedModels = dedupeModels(modelRegistry.getAvailable()).map((m) => ({ model: m }));
+  // "Logged in" = some non-ollama provider has a stored credential.
+  const cloudAuthed = modelRegistry
+    .getAll()
+    .some((m) => m.provider !== "ollama" && !!authStorage.get(m.provider));
 
   const entries: import("@earendil-works/pi-tui").Component[] = [];
   let cavemanLevel: CavemanLevel = opts.caveman ?? "off";
@@ -147,7 +155,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   const palette = new Palette();
   const inputArea = new Container();
   const inputBox = new InputBox(input, () => ({ busy: state.busy }));
-  const footer = new Footer(() => ({ model: state.model, safety: state.safety, busy: state.busy, caveman: cavemanLevel }));
+  const footer = new Footer(() => ({ safety: state.safety, busy: state.busy, caveman: cavemanLevel }));
   const usageBar = new UsageBar(() => {
     try {
       const st = session.getSessionStats();
@@ -286,6 +294,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
       if (found)
         void session.setModel(found).then(() => {
           state.model = session.model?.id ?? it.id;
+          setLastModel(it.id);
           sys([`${G.check} model → ${state.model}`]);
         });
     });
@@ -377,6 +386,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
           else {
             await session.setModel(found);
             state.model = session.model?.id ?? arg;
+            setLastModel(`${found.provider}/${found.id}`);
             sys([`${G.check} model → ${state.model}`]);
           }
         } else {
@@ -599,7 +609,13 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   // --- go -------------------------------------------------------------------
   tui.start();
   tui.requestRender();
-  if (opts.initialMessage) void submitPrompt(opts.initialMessage);
+  // First run, not signed in, nothing remembered → connect a model first.
+  if (!cloudAuthed && !hadLastModel && !opts.initialMessage) {
+    sys([`${G.node} Connect a model to begin — choose a provider to sign in.`]);
+    void startLogin();
+  } else if (opts.initialMessage) {
+    void submitPrompt(opts.initialMessage);
+  }
   await done;
 }
 

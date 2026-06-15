@@ -20,6 +20,8 @@ export interface RegistryLike {
 export interface ResolveOptions {
   flagModel?: string;
   envModel?: string;
+  /** Last-used model (persisted), restored before falling back to first available. */
+  lastModel?: string;
 }
 
 /** Parse "provider/id" (id may contain further slashes). Null if no provider segment. */
@@ -61,6 +63,17 @@ export function dedupeModels<M extends AnyModel>(models: M[]): M[] {
 export function resolveModel(reg: RegistryLike, opts: ResolveOptions): AnyModel {
   if (opts.flagModel) return findRef(reg, opts.flagModel);
   if (opts.envModel) return findRef(reg, opts.envModel);
+
+  // Restore the last-used model when it's still available (ignore if stale).
+  if (opts.lastModel) {
+    const parsed = parseModelRef(opts.lastModel);
+    if (parsed) {
+      const found = reg.find(parsed.provider, parsed.id);
+      if (found && reg.getAvailable().some((m) => m.provider === found.provider && m.id === found.id)) {
+        return found;
+      }
+    }
+  }
 
   const available = reg.getAvailable();
   if (available.length > 0) return available[0];

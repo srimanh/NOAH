@@ -61,8 +61,9 @@ test("InputBox + Footer fit width and frame the prompt", () => {
   const lines = box.render(60);
   assert.equal(lines.length, 3, "rounded box: top/mid/bottom");
   assert.ok(fits(lines, 60));
-  const f = new Footer(() => ({ model: "ollama/llama3.1", safety: "on", busy: false }));
-  assert.match(f.render(80)[0], /ollama\/llama3\.1/);
+  const f = new Footer(() => ({ safety: "on", busy: false, caveman: "off" }));
+  assert.match(f.render(80)[0], /safety/);
+  assert.doesNotMatch(f.render(80)[0], /ollama|claude/, "model lives in the usage bar, not the footer");
   assert.ok(visibleLen(f.render(80)[0]) <= 80);
 });
 

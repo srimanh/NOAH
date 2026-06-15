@@ -30,6 +30,7 @@ import { logsTool } from "./tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "./prompt/system.js";
 import { cavemanExtension, type CavemanLevel } from "./agent/caveman.js";
 import { loadExtensions, activeFactories } from "./ext/loader.js";
+import { getLastModel } from "./agent/config.js";
 
 /** Built-in pi tools + NOAH abstract OS tools. */
 export const NOAH_TOOLS = [
@@ -98,6 +99,7 @@ export async function noahWiring(opts: { model?: string }): Promise<NoahWiring> 
   const model = resolveModel(modelRegistry as unknown as RegistryLike, {
     flagModel: opts.model,
     envModel: process.env.NOAH_MODEL,
+    lastModel: getLastModel(),
   });
   return { authStorage, modelRegistry, model };
 }

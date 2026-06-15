@@ -178,11 +178,12 @@ export class InputBox implements Component {
 /* --------------------------------------------------------------------- footer */
 
 export class Footer implements Component {
-  constructor(private get: () => { model: string; safety: string; busy: boolean; caveman?: string }) {}
+  // Note: the model is shown in the usage bar; the footer shows safety + hints only.
+  constructor(private get: () => { safety: string; busy: boolean; caveman?: string }) {}
   render(width: number): string[] {
     const s = this.get();
     const cave = s.caveman && s.caveman !== "off" ? `  ${C.ghost(G.dot)}  ${C.nebula("caveman:" + s.caveman)}` : "";
-    const left = `  ${C.comet(G.node)} ${C.text(s.model)}  ${C.ghost(G.dot)}  ${C.faint("safety")} ${
+    const left = `  ${C.comet(G.node)} ${C.faint("safety")} ${
       s.safety === "dry-run" ? C.warn(s.safety) : C.good(s.safety)
     }${cave}`;
     const right = s.busy

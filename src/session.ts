@@ -17,6 +17,7 @@ import { logsTool } from "./tools/logs.js";
 import { NOAH_SYSTEM_PROMPT } from "./prompt/system.js";
 import { buildRegistry } from "./llm/registry.js";
 import { resolveModel, type RegistryLike } from "./llm/resolve.js";
+import { getLastModel } from "./agent/config.js";
 import * as ui from "./ui/render.js";
 
 export interface RunOptions {
@@ -61,6 +62,7 @@ export async function runNoah(opts: RunOptions): Promise<void> {
   const model = resolveModel(modelRegistry as unknown as RegistryLike, {
     flagModel: opts.model,
     envModel: process.env.NOAH_MODEL,
+    lastModel: getLastModel(),
   });
 
   const { session } = await createAgentSession({
