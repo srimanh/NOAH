@@ -185,6 +185,23 @@ and the safety gate.
 | `confirm` | installs, `sudo`, deletes, writes, service/network changes | Asks first |
 | `allow` | `ls`, `grep`, telemetry reads, redirects to `/dev/null` | Runs freely |
 
+### 🔐 Supply-chain integrity
+
+NOAH is built on the Pi SDK but never inherits its release cadence or any
+compromise in a third-party patch:
+
+- **Exact pins** — the Pi packages are locked to one vetted version (no `^`/`~`).
+- **Bundled** — that vetted Pi tree ships *inside* the npm tarball
+  (`bundleDependencies`), so `npm i -g noah-agent` never re-downloads Pi from the
+  registry. A malicious Pi release simply can't reach your machine.
+- **Verified** — `npm run verify:deps` (and `noah --verify-deps`) walks the whole
+  install tree and fails on any drifted or missing copy. It runs automatically in
+  `prepublishOnly`, so a tampered tree can never be published.
+
+```bash
+noah --verify-deps   # ✓ pi dependencies verified — all pinned versions intact.
+```
+
 ---
 
 ## 🧪 Development

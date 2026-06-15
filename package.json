@@ -25,7 +25,8 @@
   "scripts": {
     "build": "tsc && chmod +x dist/cli.js",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build && npm test",
+    "verify:deps": "node dist/cli.js --verify-deps",
+    "prepublishOnly": "npm run build && npm test && npm run verify:deps",
     "dev": "tsx src/cli.ts",
     "noah": "npm run build && npm run dev",
     "preview": "node dist/ui/preview.js",
@@ -62,6 +63,16 @@
     "@earendil-works/pi-tui": "0.79.2",
     "typebox": "1.2.8"
   },
+  "overrides": {
+    "@earendil-works/pi-ai": "0.79.2",
+    "@earendil-works/pi-coding-agent": "0.79.2",
+    "@earendil-works/pi-tui": "0.79.2"
+  },
+  "bundleDependencies": [
+    "@earendil-works/pi-ai",
+    "@earendil-works/pi-coding-agent",
+    "@earendil-works/pi-tui"
+  ],
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
