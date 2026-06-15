@@ -19,6 +19,8 @@ import { runNoahBenchmark } from "./modes/benchmark.js";
 import { loadExtensions } from "./ext/loader.js";
 import { printAuditLog } from "./safety/audit.js";
 import { classify } from "./safety/policy.js";
+import { verifyPinnedDeps, formatViolations } from "./safety/deps.js";
+import { resolve as resolvePath } from "node:path";
 import { buildRegistry } from "./llm/registry.js";
 import { formatModelList, type RegistryLike } from "./llm/resolve.js";
 import * as ui from "./ui/render.js";
@@ -47,6 +49,7 @@ Flags:
   --model REF      Pick the LLM as provider/id (e.g. ollama/llama3.1)
   --list-models    List available models (✓ = ready) and exit
   --check CMD      Show how NOAH's safety gate would classify a shell command
+  --verify-deps    Verify the pinned pi SDK tree is intact (supply-chain guard)
   --log            Print the audit trail and exit
   --help, -h       Show this help
 `);
@@ -84,6 +87,14 @@ async function main(): Promise<void> {
   if (argv[0] === "benchmark" || argv.includes("--benchmark")) {
     const mIdx = argv.indexOf("--model");
     await runNoahBenchmark({ model: mIdx !== -1 ? argv[mIdx + 1] : undefined });
+    return;
+  }
+
+  if (argv.includes("--verify-deps")) {
+    const root = resolvePath(new URL("..", import.meta.url).pathname, "node_modules");
+    const violations = verifyPinnedDeps(root);
+    console.log(formatViolations(violations));
+    if (violations.length > 0) process.exitCode = 1;
     return;
   }
 
