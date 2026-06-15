@@ -1,5 +1,5 @@
 /**
- * NOAH interactive TUI — reuses Pi's full InteractiveMode for an exact pi.dev UX
+ * NOAH classic TUI — reuses the upstream InteractiveMode for a plain terminal UX
  * (streaming, tool cards, model cycling with Ctrl+P, footer, slash commands),
  * wired to NOAH's provider registry, OS tools, system prompt, and safety gate.
  *

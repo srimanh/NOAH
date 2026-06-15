@@ -95,7 +95,12 @@ noah --rpc                        # headless JSON-RPC (embed NOAH)
 noah --list-models                # available models (✓ = ready)
 noah --check "rm -rf /"           # see how the safety gate classifies a command
 noah --log                        # print the audit trail
+noah update                       # upgrade to the latest published version
+noah version                      # print version (and notify if an update exists)
 ```
+
+NOAH checks for new releases once a day and shows a gentle banner when one is
+available — just run `noah update` to upgrade.
 
 **In-console commands**
 
@@ -124,13 +129,13 @@ noah --log                        # print the audit trail
 
 NOAH ships built-in provider shims and auto-discovers your own extensions from
 `~/.noah/extensions` (user) and `./extensions` (project). Each is a module with a
-default-exported pi extension factory; a broken extension is **isolated** and never
+default-exported extension factory; a broken extension is **isolated** and never
 blocks the others. Loaded extensions and their health show in `/extensions` and `noah doctor`.
 
 ```js
 // ~/.noah/extensions/hello.mjs
-export default function (pi) {
-  pi.on("before_agent_start", (event) => ({ systemPrompt: event.systemPrompt }));
+export default function (noah) {
+  noah.on("before_agent_start", (event) => ({ systemPrompt: event.systemPrompt }));
 }
 ```
 
@@ -173,9 +178,9 @@ Also exported: `classify` (safety policy) · `platform` (OS adapter) ·
        Host OS
 ```
 
-Built on the [Pi](https://pi.dev) agent SDK for the loop, sessions, streaming, and
-multi-provider transport; NOAH adds the OS tool layer, the telemetry/health engine,
-and the safety gate.
+Under the hood NOAH runs on a battle-tested agentic runtime for the reasoning loop,
+sessions, streaming, and multi-provider transport — then adds everything that makes
+it NOAH: the OS tool layer, the telemetry/health engine, and the safety gate.
 
 ### 🔒 Safety classification
 
@@ -187,19 +192,19 @@ and the safety gate.
 
 ### 🔐 Supply-chain integrity
 
-NOAH is built on the Pi SDK but never inherits its release cadence or any
-compromise in a third-party patch:
+NOAH never inherits the release cadence — or any compromise — of its third-party
+runtime:
 
-- **Exact pins** — the Pi packages are locked to one vetted version (no `^`/`~`).
-- **Bundled** — that vetted Pi tree ships *inside* the npm tarball
-  (`bundleDependencies`), so `npm i -g noah-agent` never re-downloads Pi from the
-  registry. A malicious Pi release simply can't reach your machine.
+- **Exact pins** — the core runtime is locked to one vetted version (no `^`/`~`).
+- **Bundled** — that vetted runtime ships *inside* the npm tarball
+  (`bundleDependencies`), so `npm i -g noah-agent` never re-downloads it from the
+  registry. A malicious upstream release simply can't reach your machine.
 - **Verified** — `npm run verify:deps` (and `noah --verify-deps`) walks the whole
   install tree and fails on any drifted or missing copy. It runs automatically in
   `prepublishOnly`, so a tampered tree can never be published.
 
 ```bash
-noah --verify-deps   # ✓ pi dependencies verified — all pinned versions intact.
+noah --verify-deps   # ✓ core dependencies verified — all pinned versions intact.
 ```
 
 ---

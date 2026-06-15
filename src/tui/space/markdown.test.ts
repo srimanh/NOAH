@@ -35,7 +35,7 @@ test("renderMarkdown: inline code and fenced code blocks lose backticks", () => 
 });
 
 test("renderMarkdown: links render as text", () => {
-  const t = plain(renderMarkdown("see [the docs](https://pi.dev/x) please", 80));
+  const t = plain(renderMarkdown("see [the docs](https://example.com/x) please", 80));
   assert.match(t, /the docs/);
   assert.doesNotMatch(t, /\]\(/);
 });

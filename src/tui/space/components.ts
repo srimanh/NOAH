@@ -1,6 +1,6 @@
 /**
  * NOAH space TUI components — cinematic, minimal, blue-on-black.
- * Built on pi-tui's Component contract; none of Pi's chrome is used.
+ * Built on the upstream TUI Component contract; none of its default chrome is used.
  */
 import type { Component, Input } from "@earendil-works/pi-tui";
 import { visibleWidth, truncateToWidth } from "@earendil-works/pi-tui";

@@ -46,7 +46,7 @@ export function barPrefix(): string {
   return `  ${dim(bar)} `;
 }
 
-/** A text block under a left bar (Pi-style), word-wrapped to panel width. */
+/** A text block under a left bar, word-wrapped to panel width. */
 export function barLines(text: string, paint: (s: string) => string = dim): string {
   return wordWrap(text, WIDTH)
     .map((l) => `  ${dim(bar)} ${paint(l)}`)
