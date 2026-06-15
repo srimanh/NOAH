@@ -47,16 +47,20 @@ export function parseDf(output: string): DiskInfo[] {
     const t = line.trim().split(/\s+/);
     if (t.length < 6) continue;
     const total = Number(t[1]);
-    const used = Number(t[2]);
     const avail = Number(t[3]);
-    const pct = parseInt(t[4], 10);
-    if (!Number.isFinite(total) || !Number.isFinite(used)) continue;
+    if (!Number.isFinite(total) || !Number.isFinite(avail) || total <= 0) continue;
+    // Derive used from total-available so used+free == total. macOS APFS's df
+    // "Capacity" column is misleading (excludes purgeable/other volumes), which
+    // made the % disagree with the reported free space.
+    const totalB = total * 1024;
+    const availB = avail * 1024;
+    const usedB = Math.max(0, totalB - availB);
     out.push({
       mount: t.slice(5).join(" "),
-      total: total * 1024,
-      used: used * 1024,
-      available: avail * 1024,
-      usedPct: Number.isFinite(pct) ? pct : 0,
+      total: totalB,
+      used: usedB,
+      available: availB,
+      usedPct: Math.round((usedB / totalB) * 100),
     });
   }
   return out;

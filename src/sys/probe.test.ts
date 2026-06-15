@@ -19,13 +19,16 @@ const DF = `Filesystem     1024-blocks      Used Available Capacity Mounted on
 devfs                  404       404         0     100% /dev
 /dev/sda1        102687672  45678901  51789012      47% /mnt/data drive`;
 
-test("parseDf: bytes, used%, and space-containing mounts", () => {
+test("parseDf: used = total - available, %% consistent with free space", () => {
   const disks = parseDf(DF);
   assert.equal(disks.length, 3);
   assert.equal(disks[0].mount, "/");
   assert.equal(disks[0].total, 482797652 * 1024);
-  assert.equal(disks[0].used, 20710480 * 1024);
-  assert.equal(disks[0].usedPct, 12);
+  assert.equal(disks[0].available, 158473776 * 1024);
+  // used is derived so used + free == total (APFS-safe, not df's Capacity column)
+  assert.equal(disks[0].used, (482797652 - 158473776) * 1024);
+  assert.equal(disks[0].usedPct, Math.round(((482797652 - 158473776) / 482797652) * 100));
+  assert.ok(disks[0].usedPct > 50, "high % when little is free");
   assert.equal(disks[2].mount, "/mnt/data drive", "mount with spaces preserved");
 });
 
