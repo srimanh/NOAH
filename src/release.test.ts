@@ -40,6 +40,35 @@ test("release: discoverable keywords (sysadmin / devops / ai)", () => {
   for (const k of ["sysadmin", "devops", "ai"]) assert.ok(pkg.keywords.includes(k), `keyword ${k}`);
 });
 
+test("release: supply-chain lock — pinned + overridden + bundled core runtime", () => {
+  for (const dep of ["@earendil-works/pi-ai", "@earendil-works/pi-coding-agent", "@earendil-works/pi-tui"]) {
+    assert.match(pkg.dependencies[dep], /^\d+\.\d+\.\d+$/, `${dep} pinned exactly`);
+    assert.ok(pkg.overrides?.[dep], `${dep} overridden`);
+    assert.ok(pkg.bundleDependencies?.includes(dep), `${dep} bundled`);
+  }
+  assert.match(pkg.scripts.prepublishOnly, /verify:deps/, "publish gated on integrity check");
+});
+
+test("release: CHANGELOG documents the journey to 1.0", () => {
+  assert.ok(existsSync(root("CHANGELOG.md")), "CHANGELOG.md present");
+  const log = readFileSync(root("CHANGELOG.md"), "utf8");
+  assert.match(log, /Time Machine|Playbooks|Marketplace|Recall|Sentinel|Fleet|Black Box/, "names the phases");
+});
+
+test("release: SECURITY policy exists for a security-focused tool", () => {
+  assert.ok(existsSync(root("SECURITY.md")), "SECURITY.md present");
+  assert.match(readFileSync(root("SECURITY.md"), "utf8"), /report|disclos/i);
+});
+
+test("release: CI runs tests + supply-chain check on push", () => {
+  const ci = root(".github/workflows/ci.yml");
+  assert.ok(existsSync(ci), "CI workflow present");
+  const y = readFileSync(ci, "utf8");
+  assert.match(y, /npm (ci|install)/);
+  assert.match(y, /test/);
+  assert.match(y, /verify-deps|verify:deps/, "CI runs the integrity guard");
+});
+
 test("release: README documents install, the doctor command, and license", () => {
   const readme = readFileSync(root("README.md"), "utf8");
   assert.match(readme, /npm install|npm i /);

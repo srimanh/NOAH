@@ -347,7 +347,7 @@ So if NOAH hardens your `sshd_config`, `noah undo` restores the *exact* prior fi
 git clone https://github.com/srimanh/NOAH
 cd NOAH && npm install
 npm run build
-npm test          # full suite (200 tests)
+npm test          # full suite (330 tests)
 npm run dev -- "how healthy is my machine?"
 ```
 
@@ -375,10 +375,21 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] **Sentinel** — proactive health watch that alerts when problems appear (`noah watch`)
 - [x] **Fleet** — query many machines over SSH; safety-gated fan-out (`noah fleet`)
 - [x] **Black Box** — signed, reproducible incident reports from the logs (`noah report`)
-- [ ] Remote skill registry (search/publish over the network)
-- [ ] GA 1.0 (hardening · docs site · semver-1.0)
+- [x] **GA 1.0** — CI, hardening, semver-1.0 stability contract 🎉
+- [ ] Post-1.0: remote skill registry · conversation-memory fork · fleet-wide playbooks · Windows adapter
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA
+
+---
+
+## 🔖 Stability (1.0)
+
+NOAH follows [Semantic Versioning](https://semver.org). As of **1.0**, the CLI
+commands, the safety verdicts (`deny`/`confirm`/`allow`), and the SDK surface
+documented here are stable for the entire `1.x` line — breaking changes wait for
+`2.0`. New capabilities arrive as minor releases; fixes as patches. See
+[CHANGELOG.md](./CHANGELOG.md) for the journey and [SECURITY.md](./SECURITY.md)
+for disclosure.
 
 ---
 
