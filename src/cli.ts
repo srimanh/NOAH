@@ -23,6 +23,7 @@ import { verifyPinnedDeps, formatViolations } from "./safety/deps.js";
 import { checkForUpdate, currentVersion } from "./agent/update.js";
 import { undo as undoOp } from "./ops/engine.js";
 import { history as opHistory } from "./ops/ledger.js";
+import { restoreSnapshot } from "./ops/snapshot.js";
 import { formatHistory, formatUndoResult } from "./ops/report.js";
 import { platform } from "./platform/adapter.js";
 import type { ToolAction } from "./ops/types.js";
@@ -96,11 +97,16 @@ async function main(): Promise<void> {
 
   if (argv[0] === "undo") {
     console.log(ui.brand());
-    const runInverse = async (a: ToolAction): Promise<string> =>
-      a.tool === "package"
-        ? await platform.pkg(a.action, a.pkg)
-        : await platform.service(a.name, a.action as never);
-    const res = await undoOp({ id: argv[1], run: runInverse });
+    const runInverse = async (a: ToolAction): Promise<string> => {
+      if (a.tool === "package") return await platform.pkg(a.action, a.pkg);
+      if (a.tool === "service") return await platform.service(a.name, a.action as never);
+      return ""; // file ops are reversed via restore, not a command
+    };
+    const res = await undoOp({
+      id: argv[1],
+      run: runInverse,
+      restore: async (ref) => restoreSnapshot(ref),
+    });
     console.log(formatUndoResult(res));
     process.exitCode = res.ok ? 0 : 1;
     return;

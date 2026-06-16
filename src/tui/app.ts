@@ -21,6 +21,7 @@ import { buildRegistry } from "../llm/registry.js";
 import { resolveModel, dedupeModels, type RegistryLike } from "../llm/resolve.js";
 import { getLastModel, setLastModel } from "../agent/config.js";
 import { safetyExtension } from "../safety/extension.js";
+import { snapshotExtension } from "../ops/snapshot-ext.js";
 import { packageTool } from "../tools/package.js";
 import { serviceTool } from "../tools/service.js";
 import { networkTool } from "../tools/network.js";
@@ -104,6 +105,7 @@ export async function runNoahInteractive(opts: TuiOptions): Promise<void> {
         // Safety gate + audit (unbypassable) and NOAH header/footer branding.
         extensionFactories: [
           safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes }),
+          snapshotExtension(),
           noahBranding({ dryRun: opts.dryRun }),
         ],
       },

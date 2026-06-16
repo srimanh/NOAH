@@ -22,6 +22,7 @@ import {
 import { buildRegistry } from "./llm/registry.js";
 import { resolveModel, dedupeModels, type RegistryLike } from "./llm/resolve.js";
 import { safetyExtension } from "./safety/extension.js";
+import { snapshotExtension } from "./ops/snapshot-ext.js";
 import { packageTool } from "./tools/package.js";
 import { serviceTool } from "./tools/service.js";
 import { networkTool } from "./tools/network.js";
@@ -81,6 +82,7 @@ export function noahSessionConfig(opts: NoahConfigOptions): NoahSessionConfig {
     appendSystemPromptOverride: () => [],
     extensionFactories: [
       safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes, confirm: opts.confirm }),
+      snapshotExtension(),
       cavemanExtension(getCaveman),
       ...(opts.extraExtensions ?? []),
     ],

@@ -212,9 +212,11 @@ noah --verify-deps   # ✓ core dependencies verified — all pinned versions in
 
 ### ↩️ Reversible by design
 
-Every change NOAH makes (package install/remove, service enable/disable/start/stop)
-is recorded as a **transaction with its inverse** in an append-only ledger
-(`~/.noah/ops.jsonl`). You never have to remember what changed or how to undo it:
+Every change NOAH makes is recorded as a **transaction** in an append-only ledger
+(`~/.noah/ops.jsonl`). Command-style changes (package install/remove, service
+enable/disable/start/stop) store their **inverse**; file changes (`write`/`edit`)
+store a **content-addressed snapshot** of the original bytes. You never have to
+remember what changed or how to undo it:
 
 ```bash
 noah history   # timeline: [reversible] / [undone] / [not reversible]
@@ -222,8 +224,9 @@ noah undo      # replay the inverse of the last reversible op (gated)
 noah undo <id> # revert a specific operation
 ```
 
-Irreversible actions (e.g. `update`, `restart`) are still recorded — and clearly
-flagged “not reversible” so there are no surprises.
+So if NOAH hardens your `sshd_config`, `noah undo` restores the *exact* prior file
+— and a file NOAH created is removed again. Irreversible actions (e.g. `update`,
+`restart`) are still recorded and clearly flagged “not reversible”, no surprises.
 
 ---
 
@@ -252,9 +255,9 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] Safety gate + audit · dry-run · cross-platform adapters
 - [x] Extensions · benchmark · SDK · RPC
 - [x] Supply-chain hardening (bundled + verified runtime) · update notifications
-- [x] Undo / rollback — reversible operations engine (`noah undo` · `noah history`)
-- [ ] Snapshots for file edits/deletes (extend undo coverage)
-- [ ] Playbooks (`/onboard-mac`, `/harden-ssh`)
+- [x] Undo / rollback — reversible ops + **file snapshots** (`noah undo` · `noah history`)
+- [ ] Playbooks (`/onboard-mac`, `/harden-ssh`) — safe because every step is undoable
+- [ ] Skills/extension registry (signed, sandboxed)
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA
 

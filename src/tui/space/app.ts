@@ -13,6 +13,7 @@ import { Container, Input, ProcessTerminal, TUI } from "@earendil-works/pi-tui";
 import { buildRegistry } from "../../llm/registry.js";
 import { resolveModel, dedupeModels, type RegistryLike } from "../../llm/resolve.js";
 import { safetyExtension } from "../../safety/extension.js";
+import { snapshotExtension } from "../../ops/snapshot-ext.js";
 import { readAudit, appendAudit } from "../../safety/audit.js";
 import { packageTool } from "../../tools/package.js";
 import { serviceTool } from "../../tools/service.js";
@@ -32,6 +33,7 @@ import { getLastModel, setLastModel } from "../../agent/config.js";
 import { checkForUpdate, currentVersion } from "../../agent/update.js";
 import { undo as undoOp } from "../../ops/engine.js";
 import { history as opHistory } from "../../ops/ledger.js";
+import { restoreSnapshot } from "../../ops/snapshot.js";
 import { platform } from "../../platform/adapter.js";
 import type { ToolAction } from "../../ops/types.js";
 import { spawn } from "node:child_process";
@@ -135,6 +137,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
     appendSystemPromptOverride: () => [],
     extensionFactories: [
       safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes, confirm }),
+      snapshotExtension(),
       cavemanExtension(() => cavemanLevel),
       ...activeFactories(extRecords),
     ],
@@ -499,12 +502,17 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
         break;
       }
       case "undo": {
-        const runInverse = async (a: ToolAction): Promise<string> =>
-          a.tool === "package"
-            ? await platform.pkg(a.action, a.pkg)
-            : await platform.service(a.name, a.action as never);
+        const runInverse = async (a: ToolAction): Promise<string> => {
+          if (a.tool === "package") return await platform.pkg(a.action, a.pkg);
+          if (a.tool === "service") return await platform.service(a.name, a.action as never);
+          return ""; // file ops reversed via restore
+        };
         sys([`${G.node} undoing last operation…`]);
-        const res = await undoOp({ id: arg || undefined, run: runInverse });
+        const res = await undoOp({
+          id: arg || undefined,
+          run: runInverse,
+          restore: async (ref) => restoreSnapshot(ref),
+        });
         if (res.ok) sys([`${G.check} reverted: ${res.tx?.desc ?? "operation"}`]);
         else sys([`${G.cross} ${res.reason ?? "undo failed"}`], "warn");
         break;

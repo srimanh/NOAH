@@ -9,6 +9,7 @@ import {
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { safetyExtension } from "./safety/extension.js";
+import { snapshotExtension } from "./ops/snapshot-ext.js";
 import { packageTool } from "./tools/package.js";
 import { serviceTool } from "./tools/service.js";
 import { networkTool } from "./tools/network.js";
@@ -52,7 +53,8 @@ export async function runNoah(opts: RunOptions): Promise<void> {
     systemPromptOverride: () => NOAH_SYSTEM_PROMPT,
     // Don't auto-append the user's APPEND_SYSTEM.md — NOAH owns its prompt.
     appendSystemPromptOverride: () => [],
-    extensionFactories: [safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes })],
+    extensionFactories: [safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes }), snapshotExtension()],
+
   });
   await resourceLoader.reload();
 

@@ -16,13 +16,13 @@ test("NOAH_CUSTOM_TOOLS: package, service, network, system, logs", () => {
   );
 });
 
-test("noahSessionConfig: wires prompt, tools, safety + caveman extensions", () => {
+test("noahSessionConfig: wires prompt, tools, safety + snapshot + caveman extensions", () => {
   const cfg = noahSessionConfig({ dryRun: false, autoYes: false });
   assert.equal(cfg.systemPromptOverride(), NOAH_SYSTEM_PROMPT);
   assert.deepEqual(cfg.appendSystemPromptOverride(), []);
   assert.equal(cfg.tools, NOAH_TOOLS);
   assert.equal(cfg.customTools, NOAH_CUSTOM_TOOLS);
-  assert.equal(cfg.extensionFactories.length, 2, "safety + caveman");
+  assert.equal(cfg.extensionFactories.length, 3, "safety + snapshot + caveman");
   for (const f of cfg.extensionFactories) assert.equal(typeof f, "function");
 });
 
