@@ -6,6 +6,7 @@ import { Type } from "typebox";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { platform } from "../platform/adapter.js";
 import type { ServiceAction } from "../platform/types.js";
+import { recordOp } from "../ops/engine.js";
 
 export const serviceTool = defineTool({
   name: "service",
@@ -48,6 +49,8 @@ export const serviceTool = defineTool({
     }
 
     const out = await platform.service(name, action);
+    // Record for `noah undo` (enable⇄disable, start⇄stop are reversible).
+    recordOp({ tool: "service", action, name });
     return { content: [{ type: "text", text: out || `${action} ${name} done` }], details: {} };
   },
 });

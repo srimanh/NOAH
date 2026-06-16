@@ -5,6 +5,7 @@
 import { Type } from "typebox";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import { platform } from "../platform/adapter.js";
+import { recordOp } from "../ops/engine.js";
 
 export const packageTool = defineTool({
   name: "package",
@@ -39,6 +40,8 @@ export const packageTool = defineTool({
     }
 
     const out = await platform.pkg(action, pkg);
+    // Record for `noah undo` (install ⇄ remove are reversible; update is flagged not).
+    recordOp({ tool: "package", action, pkg });
     return { content: [{ type: "text", text: out || `${action} ${pkg ?? ""} done` }], details: {} };
   },
 });
