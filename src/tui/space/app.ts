@@ -34,6 +34,9 @@ import { checkForUpdate, currentVersion } from "../../agent/update.js";
 import { undo as undoOp, rewindTo } from "../../ops/engine.js";
 import { history as opHistory } from "../../ops/ledger.js";
 import { restoreSnapshot } from "../../ops/snapshot.js";
+import { all as allFacts, rememberUnique } from "../../memory/store.js";
+import { recall, formatMemoryBlock } from "../../memory/recall.js";
+import { deriveMachineFacts } from "../../memory/capture.js";
 import { CheckpointLog } from "../../ops/checkpoints.js";
 import { nextTurn, setCurrentTurn } from "../../ops/context.js";
 import { platform } from "../../platform/adapter.js";
@@ -136,7 +139,11 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
     cwd: process.cwd(),
     agentDir: getAgentDir(),
     systemPromptOverride: () => NOAH_SYSTEM_PROMPT,
-    appendSystemPromptOverride: () => [],
+    // Inject recalled memory so NOAH already knows this machine + user.
+    appendSystemPromptOverride: () => {
+      const block = formatMemoryBlock(recall(allFacts(), "", 10));
+      return block ? [block] : [];
+    },
     extensionFactories: [
       safetyExtension({ dryRun: opts.dryRun, autoYes: opts.autoYes, confirm }),
       snapshotExtension(),
@@ -188,6 +195,10 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
   dashArea.addChild(new Dashboard(() => dash));
   void collectSnapshot().then((snap) => {
     dash = dashboardData(snap);
+    // Auto-capture durable machine facts into memory (deduped).
+    for (const f of deriveMachineFacts({ os: snap.os, packageManager: platform.pkgManager })) {
+      rememberUnique(f);
+    }
     tui.requestRender();
   });
 

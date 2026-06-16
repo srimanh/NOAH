@@ -149,6 +149,22 @@ rolled back as a unit. Author your own as a small JSON/YAML file (schema =
 
 ---
 
+## 🧠 Memory (Recall)
+
+NOAH remembers your machine and preferences — **locally** — and injects the most
+relevant facts into its context, so it behaves like it already knows your setup.
+Machine facts (OS, package manager) are auto-captured from telemetry; you teach it
+the rest. It's fully inspectable and wipeable — privacy by design.
+
+```bash
+noah remember "I deploy with pm2 and use pnpm"   # teach a durable fact
+noah memory                                       # see everything NOAH knows
+noah memory forget <id>                           # delete one fact
+noah memory forget all                            # wipe it all
+```
+
+---
+
 ## 🧩 Skills (marketplace)
 
 Skills are shareable capability packages (bundled playbooks). Before NOAH runs
@@ -310,8 +326,9 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [ ] Conversation-memory fork on rewind (truncate model history, not just machine state)
 - [x] **Playbooks** — curated, gated, reversible recipes (`noah run harden-ssh`)
 - [x] **Skills** — signed (ed25519) + permission-scoped capability packages (`noah skills`)
+- [x] **Recall** — local memory of your machine/preferences, injected into context (`noah memory`)
 - [ ] Remote skill registry (search/publish over the network)
-- [ ] Memory graph · health daemon · fleet mode
+- [ ] Health daemon · fleet mode · incident reports
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA
 

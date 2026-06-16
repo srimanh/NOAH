@@ -37,6 +37,7 @@ import { parseManifest } from "./skills/manifest.js";
 import { checkPermissions } from "./skills/permissions.js";
 import { readFileSync as readFile, writeFileSync as writeFile } from "node:fs";
 import { generateKeyPairSync } from "node:crypto";
+import { remember, all as allFacts, forget as forgetFact, forgetAll } from "./memory/store.js";
 import { resolve as resolvePath } from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildRegistry } from "./llm/registry.js";
@@ -72,6 +73,8 @@ Flags:
   run <id> [--yes] Preview a playbook; --yes applies it (reversible via undo)
   skills           List installed skills (community capability packages)
   skills install <f> · verify <f> · sign <manifest> <key> · keygen [dir]
+  remember <text>  Teach NOAH a durable fact (recalled in future sessions)
+  memory           Show what NOAH remembers (memory forget <id|all> to wipe)
   history          Show recorded operations (what NOAH changed)
   undo [id]        Revert the last reversible operation (or a specific id)
   update           Upgrade NOAH to the latest published version
@@ -191,6 +194,43 @@ async function main(): Promise<void> {
 
   if (argv.includes("--log")) {
     printAuditLog();
+    return;
+  }
+
+  if (argv[0] === "remember") {
+    const text = argv.slice(1).join(" ").trim();
+    if (!text) {
+      console.error('✗ usage: noah remember "<something to remember>"');
+      process.exitCode = 1;
+      return;
+    }
+    const f = remember({ kind: "learning", text, source: "user" });
+    console.log(`✓ remembered: ${f.text}`);
+    return;
+  }
+
+  if (argv[0] === "memory") {
+    if (argv[1] === "forget") {
+      const id = argv[2];
+      if (id === "all") {
+        forgetAll();
+        console.log("✓ memory wiped.");
+      } else if (id) {
+        console.log(forgetFact(id) ? `✓ forgot ${id}` : `✗ no fact with id ${id}`);
+      } else {
+        console.error("usage: noah memory forget <id|all>");
+        process.exitCode = 1;
+      }
+      return;
+    }
+    console.log(ui.brand());
+    const facts = allFacts();
+    if (!facts.length) {
+      console.log('NOAH hasn\'t learned anything yet. Teach it with:  noah remember "…"');
+      return;
+    }
+    console.log("What NOAH remembers (forget with:  noah memory forget <id>):\n");
+    for (const f of facts) console.log(`  [${f.kind}] ${f.text}\n  ${" ".repeat(2)} id ${f.id}`);
     return;
   }
 
