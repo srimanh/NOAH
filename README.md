@@ -149,6 +149,20 @@ rolled back as a unit. Author your own as a small JSON/YAML file (schema =
 
 ---
 
+## 🩺 Sentinel (proactive health)
+
+Sentinel watches your machine in the background and alerts you the moment a
+problem **appears** — disk filling, memory pressure, a service that died — not
+every tick while it lingers (anti-alert-fatigue by design). Alerts go to a native
+desktop notification and `~/.noah/sentinel.log`.
+
+```bash
+noah watch                 # check every 60s; Ctrl-C to stop
+noah watch --interval 10   # check every 10s
+```
+
+---
+
 ## 🧠 Memory (Recall)
 
 NOAH remembers your machine and preferences — **locally** — and injects the most
@@ -327,8 +341,9 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] **Playbooks** — curated, gated, reversible recipes (`noah run harden-ssh`)
 - [x] **Skills** — signed (ed25519) + permission-scoped capability packages (`noah skills`)
 - [x] **Recall** — local memory of your machine/preferences, injected into context (`noah memory`)
+- [x] **Sentinel** — proactive health watch that alerts when problems appear (`noah watch`)
 - [ ] Remote skill registry (search/publish over the network)
-- [ ] Health daemon · fleet mode · incident reports
+- [ ] Fleet mode · incident reports · GA 1.0
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA
 

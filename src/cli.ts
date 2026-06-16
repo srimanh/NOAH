@@ -38,6 +38,9 @@ import { checkPermissions } from "./skills/permissions.js";
 import { readFileSync as readFile, writeFileSync as writeFile } from "node:fs";
 import { generateKeyPairSync } from "node:crypto";
 import { remember, all as allFacts, forget as forgetFact, forgetAll } from "./memory/store.js";
+import { runWatch } from "./sentinel/watch.js";
+import { alertTitle } from "./sentinel/alerts.js";
+import { notify } from "./sentinel/notify.js";
 import { resolve as resolvePath } from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildRegistry } from "./llm/registry.js";
@@ -75,6 +78,7 @@ Flags:
   skills install <f> · verify <f> · sign <manifest> <key> · keygen [dir]
   remember <text>  Teach NOAH a durable fact (recalled in future sessions)
   memory           Show what NOAH remembers (memory forget <id|all> to wipe)
+  watch [--interval N]  Proactively watch system health; alert when issues appear
   history          Show recorded operations (what NOAH changed)
   undo [id]        Revert the last reversible operation (or a specific id)
   update           Upgrade NOAH to the latest published version
@@ -194,6 +198,29 @@ async function main(): Promise<void> {
 
   if (argv.includes("--log")) {
     printAuditLog();
+    return;
+  }
+
+  if (argv[0] === "watch") {
+    const iIdx = argv.indexOf("--interval");
+    const intervalSec = iIdx !== -1 ? parseInt(argv[iIdx + 1], 10) || 60 : 60;
+    const intervalMs = Math.max(2, intervalSec) * 1000;
+    console.log(ui.brand());
+    console.log(`◉ Sentinel watching your machine every ${intervalSec}s. Press Ctrl-C to stop.\n`);
+    const ac = new AbortController();
+    process.on("SIGINT", () => ac.abort());
+    const res = await runWatch({
+      intervalMs,
+      signal: ac.signal,
+      probe: async () => assessHealth(await collectSnapshot()).items,
+      onAlert: (lines, diff) => {
+        const title = alertTitle(diff);
+        console.log(`[${new Date().toLocaleTimeString()}] ${title}`);
+        for (const l of lines) console.log(`  ${l}`);
+        notify(platform.os, title, lines.join("; "));
+      },
+    });
+    console.log(`\nSentinel stopped after ${res.ticks} checks (${res.alerts} alert${res.alerts === 1 ? "" : "s"}).`);
     return;
   }
 
