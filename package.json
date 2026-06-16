@@ -1,6 +1,6 @@
 {
   "name": "noah-agent",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "NOAH — an AI System Administrator. Natural language controls your OS: it reads the machine, analyzes impact, recommends, and executes safely with an audited, confirm-gated trail. Cross-platform (Linux + macOS).",
   "type": "module",
   "author": "Sriman",
