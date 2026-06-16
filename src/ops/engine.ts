@@ -5,9 +5,10 @@
  * replays a recorded operation's inverse through an injected runner (the CLI
  * wires this to the real platform adapter, behind the safety gate).
  */
-import { appendEvent, getById, lastUndoable, recordTransaction, LEDGER_PATH } from "./ledger.js";
+import { appendEvent, getById, lastUndoable, recordTransaction, defaultLedgerPath } from "./ledger.js";
 import { describeAction, inverseOf } from "./inverse.js";
 import type { HistoryItem, ToolAction, Transaction } from "./types.js";
+import type { SnapshotRef } from "./snapshot.js";
 
 export function makeTxId(now: number = Date.now(), rnd: () => number = Math.random): string {
   return `${now}-${Math.floor(rnd() * 1e6).toString(36)}`;
@@ -17,18 +18,21 @@ export interface RecordOptions {
   path?: string;
   now?: number;
   rnd?: () => number;
+  /** For file ops: the snapshot that can restore the prior state. */
+  snapshot?: SnapshotRef;
 }
 
 /** Build a Transaction for an action and append it to the ledger. */
 export function recordOp(action: ToolAction, opts: RecordOptions = {}): Transaction {
-  const { path = LEDGER_PATH, now = Date.now(), rnd } = opts;
+  const { path = defaultLedgerPath(), now = Date.now(), rnd, snapshot } = opts;
   const inverse = inverseOf(action);
   const tx: Transaction = {
     id: makeTxId(now, rnd),
     at: now,
     action,
     inverse,
-    reversible: inverse !== null,
+    snapshot,
+    reversible: inverse !== null || snapshot != null,
     desc: describeAction(action),
   };
   recordTransaction(tx, path);
@@ -42,6 +46,8 @@ export interface UndoOptions {
   now?: number;
   /** Executes an inverse action and returns its output (throws on failure). */
   run: (action: ToolAction) => Promise<string>;
+  /** Restores a file snapshot (throws on failure). Required to undo file ops. */
+  restore?: (ref: SnapshotRef) => Promise<void>;
 }
 
 export interface UndoResult {
@@ -52,7 +58,7 @@ export interface UndoResult {
 }
 
 export async function undo(opts: UndoOptions): Promise<UndoResult> {
-  const { id, path = LEDGER_PATH, now = Date.now(), run } = opts;
+  const { id, path = defaultLedgerPath(), now = Date.now(), run } = opts;
 
   const target = id ? getById(id, path) : lastUndoable(path);
   if (!target) {
@@ -61,6 +67,20 @@ export async function undo(opts: UndoOptions): Promise<UndoResult> {
   if (target.undone) {
     return { ok: false, tx: target, reason: `Already undone: ${target.desc}.` };
   }
+  // File ops are reversed by restoring a snapshot rather than running a command.
+  if (target.snapshot) {
+    if (!opts.restore) {
+      return { ok: false, tx: target, reason: `No restore handler for ${target.desc}.` };
+    }
+    try {
+      await opts.restore(target.snapshot);
+      appendEvent({ kind: "undo", id: target.id, at: now }, path);
+      return { ok: true, tx: target, output: `restored ${target.snapshot.originalPath}` };
+    } catch (err) {
+      return { ok: false, tx: target, reason: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   if (!target.reversible || !target.inverse) {
     return { ok: false, tx: target, reason: `Not reversible: ${target.desc}.` };
   }

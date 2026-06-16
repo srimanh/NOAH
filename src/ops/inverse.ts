@@ -19,6 +19,7 @@ export function inverseOf(a: ToolAction): ToolAction | null {
     const inv = SVC_INVERSE[a.action];
     return inv ? { tool: "service", action: inv, name: a.name } : null;
   }
+  // File ops have no command inverse — they are reversed by restoring a snapshot.
   return null;
 }
 
@@ -28,5 +29,6 @@ export function isReversible(a: ToolAction): boolean {
 
 export function describeAction(a: ToolAction): string {
   if (a.tool === "package") return `package ${a.action} ${a.pkg ?? "(all)"}`;
-  return `service ${a.action} ${a.name}`;
+  if (a.tool === "service") return `service ${a.action} ${a.name}`;
+  return `file ${a.action} ${a.path}`;
 }

@@ -21,14 +21,23 @@ export interface SvcAction {
   name: string;
 }
 
-export type ToolAction = PkgAction | SvcAction;
+/** A file mutation (write/edit/delete) — reversed via a snapshot, not a command. */
+export interface FileAction {
+  tool: "file";
+  action: "write" | "edit" | "delete";
+  path: string;
+}
+
+export type ToolAction = PkgAction | SvcAction | FileAction;
 
 /** A recorded, potentially-reversible operation. */
 export interface Transaction {
   id: string;
   at: number; // epoch ms
   action: ToolAction;
-  inverse: ToolAction | null; // null ⇒ not auto-reversible
+  inverse: ToolAction | null; // null ⇒ reversed by snapshot (or not reversible)
+  /** For file ops: how to restore the prior state. */
+  snapshot?: import("./snapshot.js").SnapshotRef;
   reversible: boolean;
   desc: string;
 }

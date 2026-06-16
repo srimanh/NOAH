@@ -79,6 +79,46 @@ test("undo: a failing inverse does NOT mark the op undone", async () => {
   assert.equal(history(p)[0].undone, false, "stays reversible so the user can retry");
 });
 
+test("recordOp: a file op with a snapshot is reversible via restore", () => {
+  const p = ledger();
+  const tx = recordOp(
+    { tool: "file", action: "edit", path: "/etc/ssh/sshd_config" },
+    { path: p, snapshot: { originalPath: "/etc/ssh/sshd_config", existed: true, hash: "abc" } },
+  );
+  assert.equal(tx.reversible, true, "reversible because it has a snapshot");
+  assert.equal(tx.inverse, null, "no command inverse for file ops");
+});
+
+test("undo: file op restores the snapshot (not a command)", async () => {
+  const p = ledger();
+  recordOp(
+    { tool: "file", action: "write", path: "/tmp/x.conf" },
+    { path: p, snapshot: { originalPath: "/tmp/x.conf", existed: false } },
+  );
+  const restored: string[] = [];
+  const res = await undo({
+    path: p,
+    run: async () => {
+      throw new Error("run should not be called for file ops");
+    },
+    restore: async (ref) => {
+      restored.push(ref.originalPath);
+    },
+  });
+  assert.equal(res.ok, true);
+  assert.deepEqual(restored, ["/tmp/x.conf"]);
+});
+
+test("undo: file op with no restore handler → ok:false", async () => {
+  const p = ledger();
+  recordOp(
+    { tool: "file", action: "write", path: "/tmp/x.conf" },
+    { path: p, snapshot: { originalPath: "/tmp/x.conf", existed: false } },
+  );
+  const res = await undo({ path: p, run: async () => "x" });
+  assert.equal(res.ok, false);
+});
+
 test("undo twice: second time finds nothing", async () => {
   const p = ledger();
   recordOp({ tool: "package", action: "install", pkg: "git" }, { path: p });

@@ -10,9 +10,12 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { HistoryItem, LedgerEvent, Transaction } from "./types.js";
 
-export const LEDGER_PATH = process.env.NOAH_OPS_LEDGER || join(homedir(), ".noah", "ops.jsonl");
+/** Resolved at call time so tests (and `NOAH_OPS_LEDGER`) take effect. */
+export function defaultLedgerPath(): string {
+  return process.env.NOAH_OPS_LEDGER || join(homedir(), ".noah", "ops.jsonl");
+}
 
-export function appendEvent(ev: LedgerEvent, path: string = LEDGER_PATH): void {
+export function appendEvent(ev: LedgerEvent, path: string = defaultLedgerPath()): void {
   try {
     mkdirSync(dirname(path), { recursive: true });
     appendFileSync(path, JSON.stringify(ev) + "\n");
@@ -21,7 +24,7 @@ export function appendEvent(ev: LedgerEvent, path: string = LEDGER_PATH): void {
   }
 }
 
-export function loadEvents(path: string = LEDGER_PATH): LedgerEvent[] {
+export function loadEvents(path: string = defaultLedgerPath()): LedgerEvent[] {
   if (!existsSync(path)) return [];
   const out: LedgerEvent[] = [];
   for (const line of readFileSync(path, "utf8").split("\n")) {
@@ -38,7 +41,7 @@ export function loadEvents(path: string = LEDGER_PATH): LedgerEvent[] {
 }
 
 /** Fold events into the current list of operations (oldest → newest). */
-export function history(path: string = LEDGER_PATH): HistoryItem[] {
+export function history(path: string = defaultLedgerPath()): HistoryItem[] {
   const events = loadEvents(path);
   const undone = new Set<string>();
   for (const ev of events) if (ev.kind === "undo") undone.add(ev.id);
@@ -52,7 +55,7 @@ export function history(path: string = LEDGER_PATH): HistoryItem[] {
 }
 
 /** The newest reversible op that has not yet been undone. */
-export function lastUndoable(path: string = LEDGER_PATH): HistoryItem | undefined {
+export function lastUndoable(path: string = defaultLedgerPath()): HistoryItem | undefined {
   const h = history(path);
   for (let i = h.length - 1; i >= 0; i--) {
     if (h[i].reversible && !h[i].undone) return h[i];
@@ -60,11 +63,11 @@ export function lastUndoable(path: string = LEDGER_PATH): HistoryItem | undefine
   return undefined;
 }
 
-export function getById(id: string, path: string = LEDGER_PATH): HistoryItem | undefined {
+export function getById(id: string, path: string = defaultLedgerPath()): HistoryItem | undefined {
   return history(path).find((x) => x.id === id);
 }
 
 /** Record a freshly-performed operation. */
-export function recordTransaction(tx: Transaction, path: string = LEDGER_PATH): void {
+export function recordTransaction(tx: Transaction, path: string = defaultLedgerPath()): void {
   appendEvent({ kind: "op", tx }, path);
 }
