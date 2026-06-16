@@ -41,6 +41,10 @@ import { remember, all as allFacts, forget as forgetFact, forgetAll } from "./me
 import { runWatch } from "./sentinel/watch.js";
 import { alertTitle } from "./sentinel/alerts.js";
 import { notify } from "./sentinel/notify.js";
+import { listNodes, addNode, removeNode, type Node } from "./fleet/inventory.js";
+import { sshClient } from "./fleet/transport.js";
+import { fanOut } from "./fleet/coordinator.js";
+import { formatFleetResults } from "./fleet/report.js";
 import { resolve as resolvePath } from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildRegistry } from "./llm/registry.js";
@@ -74,6 +78,7 @@ Flags:
   --verify-deps    Verify the pinned core runtime tree is intact (supply-chain guard)
   playbooks        List built-in playbooks (curated multi-step recipes)
   run <id> [--yes] Preview a playbook; --yes applies it (reversible via undo)
+  fleet            Manage + query many machines over SSH (add/remove/list/doctor/run)
   skills           List installed skills (community capability packages)
   skills install <f> · verify <f> · sign <manifest> <key> · keygen [dir]
   remember <text>  Teach NOAH a durable fact (recalled in future sessions)
@@ -99,6 +104,70 @@ function checkCommand(command: string): void {
 
 function readJson(path: string): unknown {
   return JSON.parse(readFile(path, "utf8"));
+}
+
+async function runFleetCommand(args: string[]): Promise<void> {
+  console.log(ui.brand());
+  const sub = args[0];
+
+  if (sub === "add") {
+    const [, name, host] = args;
+    if (!name || !host) {
+      console.error("usage: noah fleet add <name> <host> [--user <user>]");
+      process.exitCode = 1;
+      return;
+    }
+    const uIdx = args.indexOf("--user");
+    const node: Node = { name, host, user: uIdx !== -1 ? args[uIdx + 1] : undefined };
+    addNode(node);
+    console.log(`✓ added node "${name}" (${node.user ? node.user + "@" : ""}${host})`);
+    return;
+  }
+
+  if (sub === "remove") {
+    const name = args[1];
+    console.log(name && removeNode(name) ? `✓ removed "${name}"` : `✗ no node named "${name ?? ""}"`);
+    return;
+  }
+
+  if (sub === "doctor" || sub === "run") {
+    const nodes = listNodes();
+    if (!nodes.length) {
+      console.log("No nodes. Add one with:  noah fleet add <name> <host>");
+      return;
+    }
+    let command = "noah doctor";
+    if (sub === "run") {
+      command = args.slice(1).join(" ").trim();
+      if (!command) {
+        console.error('usage: noah fleet run "<command>"');
+        process.exitCode = 1;
+        return;
+      }
+      // Safety: never fan a catastrophic command out across the fleet.
+      const verdict = classify("bash", { command });
+      if (verdict.action === "deny") {
+        console.error(`⛔ refused to run across the fleet: ${verdict.reason}`);
+        process.exitCode = 1;
+        return;
+      }
+    }
+    console.log(`Running \`${command}\` across ${nodes.length} node(s) over SSH…\n`);
+    const results = await fanOut(nodes, command, sshClient, { timeoutMs: 20000, concurrency: 8 });
+    console.log(formatFleetResults(results));
+    if (results.some((r) => !r.ok)) process.exitCode = 1;
+    return;
+  }
+
+  // default: list
+  const nodes = listNodes();
+  if (!nodes.length) {
+    console.log("No nodes in the fleet. Add one with:  noah fleet add <name> <host> [--user u]");
+    return;
+  }
+  console.log("Fleet nodes:\n");
+  for (const n of nodes) console.log(`  ${n.name.padEnd(16)} ${n.user ? n.user + "@" : ""}${n.host}`);
+  console.log("\nQuery them with:  noah fleet doctor   ·   noah fleet run \"<command>\"");
 }
 
 async function runSkillsCommand(args: string[]): Promise<void> {
@@ -270,6 +339,11 @@ async function main(): Promise<void> {
 
   if (argv[0] === "skills") {
     await runSkillsCommand(argv.slice(1));
+    return;
+  }
+
+  if (argv[0] === "fleet") {
+    await runFleetCommand(argv.slice(1));
     return;
   }
 

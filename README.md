@@ -149,6 +149,22 @@ rolled back as a unit. Author your own as a small JSON/YAML file (schema =
 
 ---
 
+## 🛰️ Fleet (many machines)
+
+Drive a whole fleet from one NOAH. It uses **your existing SSH** (no new auth, no
+daemon, no open ports) and fans a command out to every node concurrently — one
+broken host never blocks the rest. The same safety gate applies fleet-wide: a
+catastrophic command is refused before it reaches a single node.
+
+```bash
+noah fleet add web1 10.0.0.1 --user deploy   # register a node
+noah fleet                                    # list nodes
+noah fleet doctor                             # health-check every node
+noah fleet run "uptime"                       # fan a command out (gated)
+```
+
+---
+
 ## 🩺 Sentinel (proactive health)
 
 Sentinel watches your machine in the background and alerts you the moment a
@@ -342,8 +358,9 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] **Skills** — signed (ed25519) + permission-scoped capability packages (`noah skills`)
 - [x] **Recall** — local memory of your machine/preferences, injected into context (`noah memory`)
 - [x] **Sentinel** — proactive health watch that alerts when problems appear (`noah watch`)
+- [x] **Fleet** — query many machines over SSH; safety-gated fan-out (`noah fleet`)
 - [ ] Remote skill registry (search/publish over the network)
-- [ ] Fleet mode · incident reports · GA 1.0
+- [ ] Incident reports · GA 1.0
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA
 
