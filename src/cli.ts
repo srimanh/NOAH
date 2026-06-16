@@ -27,6 +27,10 @@ import { restoreSnapshot } from "./ops/snapshot.js";
 import { formatHistory, formatUndoResult } from "./ops/report.js";
 import { platform } from "./platform/adapter.js";
 import type { ToolAction } from "./ops/types.js";
+import { listBuiltins, getBuiltin } from "./playbooks/builtins.js";
+import { previewSteps, runPlaybook } from "./playbooks/runner.js";
+import { performStep } from "./playbooks/perform.js";
+import { nextTurn } from "./ops/context.js";
 import { resolve as resolvePath } from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildRegistry } from "./llm/registry.js";
@@ -58,6 +62,8 @@ Flags:
   --list-models    List available models (✓ = ready) and exit
   --check CMD      Show how NOAH's safety gate would classify a shell command
   --verify-deps    Verify the pinned core runtime tree is intact (supply-chain guard)
+  playbooks        List built-in playbooks (curated multi-step recipes)
+  run <id> [--yes] Preview a playbook; --yes applies it (reversible via undo)
   history          Show recorded operations (what NOAH changed)
   undo [id]        Revert the last reversible operation (or a specific id)
   update           Upgrade NOAH to the latest published version
@@ -86,6 +92,48 @@ async function main(): Promise<void> {
 
   if (argv.includes("--log")) {
     printAuditLog();
+    return;
+  }
+
+  if (argv[0] === "playbooks") {
+    console.log(ui.brand());
+    console.log("Available playbooks (run with:  noah run <id> --yes):\n");
+    for (const p of listBuiltins()) console.log(`  ${p.id.padEnd(14)} ${p.title} — ${p.description}`);
+    return;
+  }
+
+  if (argv[0] === "run") {
+    const id = argv[1];
+    console.log(ui.brand());
+    const parsed = id ? getBuiltin(id) : undefined;
+    if (!parsed) {
+      console.error(`✗ unknown playbook "${id ?? ""}". See:  noah playbooks`);
+      process.exitCode = 1;
+      return;
+    }
+    if (!parsed.ok) {
+      console.error(`✗ playbook "${id}" is invalid:\n${parsed.errors.map((e) => "  - " + e).join("\n")}`);
+      process.exitCode = 1;
+      return;
+    }
+    const pb = parsed.playbook;
+    const apply = argv.includes("--yes") || argv.includes("-y");
+    console.log(`${pb.title} — ${pb.description}\n`);
+    console.log(previewSteps(pb).join("\n"));
+    console.log("");
+    const turn = nextTurn();
+    const res = await runPlaybook(pb, { turn, perform: performStep, dryRun: !apply });
+    for (const s of res.steps) {
+      console.log(`  ${s.ok ? "✓" : "✗"} ${s.name}${s.error ? ` — ${s.error}` : ""}`);
+    }
+    if (!apply) {
+      console.log("\nPreview only. Re-run with  --yes  to apply. Every step is reversible (noah undo).");
+    } else if (res.ok) {
+      console.log("\n✓ Playbook complete. Roll it all back step-by-step with:  noah undo");
+    } else {
+      console.log("\n✗ Stopped at a failed step. Applied steps were recorded — revert with:  noah undo");
+      process.exitCode = 1;
+    }
     return;
   }
 

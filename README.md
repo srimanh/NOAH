@@ -95,6 +95,8 @@ noah --rpc                        # headless JSON-RPC (embed NOAH)
 noah --list-models                # available models (✓ = ready)
 noah --check "rm -rf /"           # see how the safety gate classifies a command
 noah --log                        # print the audit trail
+noah playbooks                    # list curated multi-step recipes
+noah run harden-ssh               # preview a playbook (safe); add --yes to apply
 noah history                      # what NOAH changed (reversible ops timeline)
 noah undo                         # revert the last reversible change
 noah update                       # upgrade to the latest published version
@@ -125,6 +127,25 @@ available — just run `noah update` to upgrade.
 - **"Why is my laptop slow?"** → root-cause from real top processes + memory pressure, with severity.
 - **"Free up space"** → finds large files & stale caches → suggests **safe** cleanup → confirms.
 - **"How healthy is my machine?"** → full report with prioritized actions.
+
+---
+
+## 📜 Playbooks
+
+Playbooks are curated, multi-step recipes — each step runs through the same
+safety gate and ops ledger as any other action, so the **whole playbook is
+reversible**. They are **safe by default**: `noah run <id>` only *previews*;
+add `--yes` to apply.
+
+```bash
+noah playbooks            # update-all · harden-ssh · setup-python
+noah run harden-ssh       # preview the steps (no changes)
+noah run harden-ssh --yes # apply — then `noah undo` reverts it step-by-step
+```
+
+Each step is recorded against the playbook's turn, so the entire run can be
+rolled back as a unit. Author your own as a small JSON/YAML file (schema =
+`id`, `title`, `description`, `steps[]` of `package`/`service`/`file` actions).
 
 ---
 
@@ -264,8 +285,9 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] Undo / rollback — reversible ops + **file snapshots** (`noah undo` · `noah history`)
 - [x] **Time Machine** — `/rewind` a message to roll back the machine changes it made (`/checkpoints`)
 - [ ] Conversation-memory fork on rewind (truncate model history, not just machine state)
-- [ ] Playbooks (`/onboard-mac`, `/harden-ssh`) — safe because every step is undoable
+- [x] **Playbooks** — curated, gated, reversible recipes (`noah run harden-ssh`)
 - [ ] Skills/extension registry (signed, sandboxed)
+- [ ] Memory graph · health daemon · fleet mode
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA
 
