@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { makeTxId, recordOp, undo } from "./engine.js";
+import { makeTxId, recordOp, undo, rewindTo } from "./engine.js";
 import { history } from "./ledger.js";
+import { setCurrentTurn } from "./context.js";
 import type { ToolAction } from "./types.js";
 
 const ledger = () => join(mkdtempSync(join(tmpdir(), "noah-eng-")), "ops.jsonl");
@@ -117,6 +118,63 @@ test("undo: file op with no restore handler → ok:false", async () => {
   );
   const res = await undo({ path: p, run: async () => "x" });
   assert.equal(res.ok, false);
+});
+
+test("recordOp: tags the op with the current turn by default", () => {
+  const p = ledger();
+  setCurrentTurn(5);
+  const tx = recordOp({ tool: "package", action: "install", pkg: "htop" }, { path: p });
+  assert.equal(tx.turn, 5);
+  setCurrentTurn(0);
+});
+
+test("rewindTo: undoes ops at/after the target turn, newest-first; keeps earlier turns", async () => {
+  const p = ledger();
+  recordOp({ tool: "package", action: "install", pkg: "a" }, { path: p, turn: 1 });
+  recordOp({ tool: "package", action: "install", pkg: "b" }, { path: p, turn: 2 });
+  recordOp({ tool: "service", action: "enable", name: "nginx" }, { path: p, turn: 2 });
+  recordOp({ tool: "package", action: "install", pkg: "c" }, { path: p, turn: 3 });
+
+  const order: string[] = [];
+  const res = await rewindTo(2, {
+    path: p,
+    run: async (a) => {
+      order.push((a as any).pkg ?? (a as any).name);
+      return "ok";
+    },
+  });
+
+  assert.equal(res.ok, true);
+  assert.equal(res.undone, 3, "turns 2 and 3 undone");
+  // newest-first: c (turn3), then nginx (turn2), then b (turn2)
+  assert.deepEqual(order, ["c", "nginx", "b"]);
+
+  const h = history(p);
+  assert.equal(h.find((x) => (x.action as any).pkg === "a")!.undone, false, "turn 1 untouched");
+  assert.equal(h.find((x) => (x.action as any).pkg === "c")!.undone, true);
+});
+
+test("rewindTo: skips already-undone and non-reversible ops; reports failures", async () => {
+  const p = ledger();
+  recordOp({ tool: "package", action: "update" }, { path: p, turn: 2 }); // not reversible
+  recordOp({ tool: "package", action: "install", pkg: "z" }, { path: p, turn: 2 });
+  const res = await rewindTo(2, {
+    path: p,
+    run: async () => {
+      throw new Error("boom");
+    },
+  });
+  assert.equal(res.ok, false, "the install's inverse failed");
+  assert.equal(res.undone, 0);
+  assert.equal(res.failures.length, 1, "only the reversible one was attempted");
+});
+
+test("rewindTo: nothing at/after target → ok with 0 undone", async () => {
+  const p = ledger();
+  recordOp({ tool: "package", action: "install", pkg: "a" }, { path: p, turn: 1 });
+  const res = await rewindTo(5, { path: p, run: async () => "ok" });
+  assert.equal(res.ok, true);
+  assert.equal(res.undone, 0);
 });
 
 test("undo twice: second time finds nothing", async () => {

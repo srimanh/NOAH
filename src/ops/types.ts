@@ -34,6 +34,8 @@ export type ToolAction = PkgAction | SvcAction | FileAction;
 export interface Transaction {
   id: string;
   at: number; // epoch ms
+  /** The conversation turn (user message #) that caused this op. 0 = unknown. */
+  turn?: number;
   action: ToolAction;
   inverse: ToolAction | null; // null ⇒ reversed by snapshot (or not reversible)
   /** For file ops: how to restore the prior state. */
