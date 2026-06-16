@@ -149,6 +149,29 @@ rolled back as a unit. Author your own as a small JSON/YAML file (schema =
 
 ---
 
+## 🧩 Skills (marketplace)
+
+Skills are shareable capability packages (bundled playbooks). Before NOAH runs
+one, it passes **three trust gates**:
+
+1. **Signature** — the author signs with an ed25519 key; a tampered or unsigned
+   skill is rejected.
+2. **Permissions** — the skill declares what it needs (`package`/`service`/`file`);
+   if any step reaches for an undeclared tool, install is refused (least privilege).
+3. **The trunk** — once installed, every action still flows through the safety
+   gate + ops ledger, so it stays gated and **reversible**.
+
+```bash
+noah skills keygen .                       # author: make an ed25519 keypair
+noah skills sign manifest.json noah-skill.key > my.skill.json
+noah skills verify my.skill.json           # signature + permission check
+noah skills install my.skill.json          # gated install → ~/.noah/skills
+noah skills                                # list installed skills
+noah run <skill-playbook>                  # run it (gated + reversible)
+```
+
+---
+
 ## 🔌 Extensions
 
 NOAH ships built-in provider shims and auto-discovers your own extensions from
@@ -286,7 +309,8 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] **Time Machine** — `/rewind` a message to roll back the machine changes it made (`/checkpoints`)
 - [ ] Conversation-memory fork on rewind (truncate model history, not just machine state)
 - [x] **Playbooks** — curated, gated, reversible recipes (`noah run harden-ssh`)
-- [ ] Skills/extension registry (signed, sandboxed)
+- [x] **Skills** — signed (ed25519) + permission-scoped capability packages (`noah skills`)
+- [ ] Remote skill registry (search/publish over the network)
 - [ ] Memory graph · health daemon · fleet mode
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA

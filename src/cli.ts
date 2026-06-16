@@ -31,6 +31,12 @@ import { listBuiltins, getBuiltin } from "./playbooks/builtins.js";
 import { previewSteps, runPlaybook } from "./playbooks/runner.js";
 import { performStep } from "./playbooks/perform.js";
 import { nextTurn } from "./ops/context.js";
+import { installSkill, listSkills, getSkillPlaybook } from "./skills/store.js";
+import { verifySkill, signManifest, type SignedSkill } from "./skills/signing.js";
+import { parseManifest } from "./skills/manifest.js";
+import { checkPermissions } from "./skills/permissions.js";
+import { readFileSync as readFile, writeFileSync as writeFile } from "node:fs";
+import { generateKeyPairSync } from "node:crypto";
 import { resolve as resolvePath } from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildRegistry } from "./llm/registry.js";
@@ -64,6 +70,8 @@ Flags:
   --verify-deps    Verify the pinned core runtime tree is intact (supply-chain guard)
   playbooks        List built-in playbooks (curated multi-step recipes)
   run <id> [--yes] Preview a playbook; --yes applies it (reversible via undo)
+  skills           List installed skills (community capability packages)
+  skills install <f> · verify <f> · sign <manifest> <key> · keygen [dir]
   history          Show recorded operations (what NOAH changed)
   undo [id]        Revert the last reversible operation (or a specific id)
   update           Upgrade NOAH to the latest published version
@@ -80,6 +88,97 @@ function checkCommand(command: string): void {
     return;
   }
   console.log(ui.checkVerdict(command, v.action, v.reason));
+}
+
+function readJson(path: string): unknown {
+  return JSON.parse(readFile(path, "utf8"));
+}
+
+async function runSkillsCommand(args: string[]): Promise<void> {
+  const sub = args[0];
+  // `sign` emits pure JSON to stdout; every other subcommand is human-facing.
+  if (sub !== "sign") console.log(ui.brand());
+
+  // keygen: create an ed25519 keypair for authoring skills
+  if (sub === "keygen") {
+    const dir = args[1] || ".";
+    const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+    writeFile(`${dir}/noah-skill.key`, privateKey.export({ type: "pkcs8", format: "pem" }).toString());
+    writeFile(`${dir}/noah-skill.pub`, publicKey.export({ type: "spki", format: "pem" }).toString());
+    console.log(`✓ wrote ${dir}/noah-skill.key (keep secret) and ${dir}/noah-skill.pub`);
+    return;
+  }
+
+  // sign: turn a manifest + private key into a signed skill on stdout
+  if (sub === "sign") {
+    const [, manifestPath, keyPath] = args;
+    if (!manifestPath || !keyPath) {
+      console.error("usage: noah skills sign <manifest.json> <key.pem>");
+      process.exitCode = 1;
+      return;
+    }
+    const parsed = parseManifest(readJson(manifestPath));
+    if (!parsed.ok) {
+      console.error(`✗ invalid manifest:\n${parsed.errors.map((e) => "  - " + e).join("\n")}`);
+      process.exitCode = 1;
+      return;
+    }
+    const priv = readFile(keyPath, "utf8");
+    const pub = readFile(keyPath.replace(/\.key$/, ".pub"), "utf8");
+    const signed = signManifest(parsed.manifest, priv, pub);
+    console.log(JSON.stringify(signed, null, 2));
+    return;
+  }
+
+  // verify: check signature + permissions without installing
+  if (sub === "verify") {
+    const file = args[1];
+    if (!file) {
+      console.error("usage: noah skills verify <skill.json>");
+      process.exitCode = 1;
+      return;
+    }
+    const signed = readJson(file) as SignedSkill;
+    const v = verifySkill(signed);
+    const parsed = parseManifest(signed.manifest);
+    const perms = parsed.ok ? checkPermissions(parsed.manifest) : ["manifest invalid"];
+    if (v.ok && perms.length === 0) console.log(`✓ ${signed.manifest?.id}: signature valid, permissions in scope`);
+    else {
+      if (!v.ok) console.error(`✗ ${v.reason}`);
+      for (const p of perms) console.error(`✗ ${p}`);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  // install: verify + permission-check, then persist
+  if (sub === "install") {
+    const file = args[1];
+    if (!file) {
+      console.error("usage: noah skills install <skill.json>");
+      process.exitCode = 1;
+      return;
+    }
+    const r = installSkill(readJson(file) as SignedSkill);
+    if (r.ok) console.log(`✓ installed skill "${r.manifest.id}" v${r.manifest.version} by ${r.manifest.author}`);
+    else {
+      console.error(`✗ install rejected:\n${r.errors.map((e) => "  - " + e).join("\n")}`);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  // default: list installed skills
+  const skills = listSkills();
+  if (!skills.length) {
+    console.log("No skills installed. Install one with:  noah skills install <skill.json>");
+    return;
+  }
+  console.log("Installed skills:\n");
+  for (const s of skills) {
+    console.log(`  ${s.id.padEnd(16)} v${s.version}  by ${s.author}  — ${s.description}`);
+    console.log(`  ${" ".repeat(16)} permissions: [${s.permissions.join(", ")}]  playbooks: ${s.playbooks.map((p) => p.id).join(", ")}`);
+  }
 }
 
 async function main(): Promise<void> {
@@ -102,21 +201,27 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (argv[0] === "skills") {
+    await runSkillsCommand(argv.slice(1));
+    return;
+  }
+
   if (argv[0] === "run") {
     const id = argv[1];
     console.log(ui.brand());
-    const parsed = id ? getBuiltin(id) : undefined;
-    if (!parsed) {
-      console.error(`✗ unknown playbook "${id ?? ""}". See:  noah playbooks`);
+    const builtin = id ? getBuiltin(id) : undefined;
+    let pb;
+    if (builtin && builtin.ok) pb = builtin.playbook;
+    else if (id) pb = getSkillPlaybook(id)?.playbook;
+    if (!pb) {
+      if (builtin && !builtin.ok) {
+        console.error(`✗ playbook "${id}" is invalid:\n${builtin.errors.map((e) => "  - " + e).join("\n")}`);
+      } else {
+        console.error(`✗ unknown playbook "${id ?? ""}". See:  noah playbooks  /  noah skills`);
+      }
       process.exitCode = 1;
       return;
     }
-    if (!parsed.ok) {
-      console.error(`✗ playbook "${id}" is invalid:\n${parsed.errors.map((e) => "  - " + e).join("\n")}`);
-      process.exitCode = 1;
-      return;
-    }
-    const pb = parsed.playbook;
     const apply = argv.includes("--yes") || argv.includes("-y");
     console.log(`${pb.title} — ${pb.description}\n`);
     console.log(previewSteps(pb).join("\n"));
