@@ -17,7 +17,10 @@ import { assessHealth } from "./sys/health.js";
 import { formatDoctor } from "./sys/report.js";
 import { runNoahBenchmark } from "./modes/benchmark.js";
 import { loadExtensions } from "./ext/loader.js";
-import { printAuditLog } from "./safety/audit.js";
+import { printAuditLog, readAudit } from "./safety/audit.js";
+import { buildIncident } from "./report/incident.js";
+import { renderMarkdown } from "./report/render.js";
+import { signReport, verifyReport, type SignedReport } from "./report/sign.js";
 import { classify } from "./safety/policy.js";
 import { verifyPinnedDeps, formatViolations } from "./safety/deps.js";
 import { checkForUpdate, currentVersion } from "./agent/update.js";
@@ -84,6 +87,8 @@ Flags:
   remember <text>  Teach NOAH a durable fact (recalled in future sessions)
   memory           Show what NOAH remembers (memory forget <id|all> to wipe)
   watch [--interval N]  Proactively watch system health; alert when issues appear
+  report [--sign k] [--out f]  Generate a signed incident report from the logs
+  report verify <f>    Verify a signed incident report
   history          Show recorded operations (what NOAH changed)
   undo [id]        Revert the last reversible operation (or a specific id)
   update           Upgrade NOAH to the latest published version
@@ -380,6 +385,42 @@ async function main(): Promise<void> {
       console.log("\n✗ Stopped at a failed step. Applied steps were recorded — revert with:  noah undo");
       process.exitCode = 1;
     }
+    return;
+  }
+
+  if (argv[0] === "report") {
+    if (argv[1] === "verify") {
+      const file = argv[2];
+      if (!file) {
+        console.error("usage: noah report verify <report.json>");
+        process.exitCode = 1;
+        return;
+      }
+      const v = verifyReport(readJson(file) as SignedReport);
+      console.log(v.ok ? "✓ report signature valid — authentic and unaltered" : `✗ ${v.reason}`);
+      if (!v.ok) process.exitCode = 1;
+      return;
+    }
+    const snap = await collectSnapshot();
+    const report = buildIncident({ audit: readAudit(), history: opHistory(), host: snap.os, now: Date.now() });
+    const outIdx = argv.indexOf("--out");
+    const signIdx = argv.indexOf("--sign");
+    if (signIdx !== -1) {
+      const keyPath = argv[signIdx + 1];
+      const priv = readFile(keyPath, "utf8");
+      const pub = readFile(keyPath.replace(/\.key$/, ".pub"), "utf8");
+      const json = JSON.stringify(signReport(report, priv, pub), null, 2);
+      if (outIdx !== -1) {
+        writeFile(argv[outIdx + 1], json);
+        console.log(`✓ signed report → ${argv[outIdx + 1]}`);
+      } else console.log(json);
+      return;
+    }
+    const md = renderMarkdown(report);
+    if (outIdx !== -1) {
+      writeFile(argv[outIdx + 1], md);
+      console.log(`✓ report → ${argv[outIdx + 1]}`);
+    } else console.log(md);
     return;
   }
 

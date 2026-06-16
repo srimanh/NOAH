@@ -149,6 +149,21 @@ rolled back as a unit. Author your own as a small JSON/YAML file (schema =
 
 ---
 
+## 📑 Black Box (incident reports)
+
+NOAH can turn everything it recorded — the audit log, the ops ledger, telemetry —
+into a clean **incident report**: a chronological timeline plus a summary of what
+changed and what's reversible. Sign it for a tamper-evident, verifiable record.
+
+```bash
+noah report                                  # Markdown report to stdout
+noah report --out incident.md                # write it to a file
+noah report --sign noah.key --out incident.json   # signed (ed25519)
+noah report verify incident.json             # ✓ authentic and unaltered
+```
+
+---
+
 ## 🛰️ Fleet (many machines)
 
 Drive a whole fleet from one NOAH. It uses **your existing SSH** (no new auth, no
@@ -359,8 +374,9 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] **Recall** — local memory of your machine/preferences, injected into context (`noah memory`)
 - [x] **Sentinel** — proactive health watch that alerts when problems appear (`noah watch`)
 - [x] **Fleet** — query many machines over SSH; safety-gated fan-out (`noah fleet`)
+- [x] **Black Box** — signed, reproducible incident reports from the logs (`noah report`)
 - [ ] Remote skill registry (search/publish over the network)
-- [ ] Incident reports · GA 1.0
+- [ ] GA 1.0 (hardening · docs site · semver-1.0)
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA
 
