@@ -31,9 +31,11 @@ import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } f
 import { authGate } from "../../agent/auth-gate.js";
 import { getLastModel, setLastModel } from "../../agent/config.js";
 import { checkForUpdate, currentVersion } from "../../agent/update.js";
-import { undo as undoOp } from "../../ops/engine.js";
+import { undo as undoOp, rewindTo } from "../../ops/engine.js";
 import { history as opHistory } from "../../ops/ledger.js";
 import { restoreSnapshot } from "../../ops/snapshot.js";
+import { CheckpointLog } from "../../ops/checkpoints.js";
+import { nextTurn, setCurrentTurn } from "../../ops/context.js";
 import { platform } from "../../platform/adapter.js";
 import type { ToolAction } from "../../ops/types.js";
 import { spawn } from "node:child_process";
@@ -208,6 +210,14 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
     transcript.addChild(c);
     tui.requestRender();
   }
+
+  // Conversation rewind: per-turn checkpoints tied to the ops ledger.
+  const checkpoints = new CheckpointLog();
+  const runInverse = async (a: ToolAction): Promise<string> => {
+    if (a.tool === "package") return await platform.pkg(a.action, a.pkg);
+    if (a.tool === "service") return await platform.service(a.name, a.action as never);
+    return ""; // file ops reversed via restore
+  };
 
   let resolveRun: () => void;
   const done = new Promise<void>((r) => (resolveRun = r));
@@ -384,7 +394,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
           `${G.node} NOAH operates your OS from natural language.`,
           "Try: “install htop and start it” · “what’s using port 3000” · “tidy ~/Downloads”.",
           "Tools: bash · files · package · service · network — safety-gated and audited.",
-          "Commands: /model /login /logout /history /undo /extensions /audit /clear /quit · esc interrupts.",
+          "Commands: /model /login /logout /history /undo /rewind /checkpoints /extensions /audit /clear /quit · esc interrupts.",
         ]);
         break;
       case "model":
@@ -501,12 +511,39 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
           ]);
         break;
       }
+      case "checkpoints": {
+        const list = checkpoints.list();
+        if (!list.length) sys([`${G.node} no checkpoints yet — send a message first.`]);
+        else
+          sys([
+            `${G.node} checkpoints (rewind with /rewind <n>):`,
+            ...list.map((c) => `  #${c.turn}  ${c.text.slice(0, 60)}`),
+          ]);
+        break;
+      }
+      case "rewind": {
+        const targetTurn = arg ? parseInt(arg, 10) : checkpoints.latest()?.turn;
+        const cp = targetTurn ? checkpoints.get(targetTurn) : undefined;
+        if (!cp) {
+          sys([`${G.cross} no checkpoint ${arg || ""}. Try /checkpoints.`], "warn");
+          break;
+        }
+        sys([`${G.node} rewinding to message #${cp.turn} — rolling back machine changes…`]);
+        const res = await rewindTo(cp.turn, { run: runInverse, restore: async (r) => restoreSnapshot(r) });
+        // Trim the transcript back to (and including) the rewound message.
+        entries.length = cp.entryIndex;
+        sync();
+        checkpoints.truncateFrom(cp.turn);
+        setCurrentTurn(cp.turn - 1); // next message reuses this turn number
+        input.setValue(cp.text); // restore the message for editing
+        const out = [
+          `${G.check} rolled back ${res.undone} change(s). Your message is restored below — edit and send.`,
+        ];
+        if (res.failures.length) out.push(`${G.cross} ${res.failures.length} change(s) could not be reverted.`);
+        sys(out, res.failures.length ? "warn" : undefined);
+        break;
+      }
       case "undo": {
-        const runInverse = async (a: ToolAction): Promise<string> => {
-          if (a.tool === "package") return await platform.pkg(a.action, a.pkg);
-          if (a.tool === "service") return await platform.service(a.name, a.action as never);
-          return ""; // file ops reversed via restore
-        };
         sys([`${G.node} undoing last operation…`]);
         const res = await undoOp({
           id: arg || undefined,
@@ -546,6 +583,10 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
       sys([`${G.cross} ${gate.reason}`], "warn");
       return;
     }
+    // Start a new conversation turn so any machine changes are tagged to it,
+    // and record a checkpoint so this message can be rewound to.
+    const turn = nextTurn();
+    checkpoints.add(turn, text, entries.length);
     pushEntry(new UserBlock(text));
     appendAudit({ ts: new Date().toISOString(), tool: "message", input: { command: text }, ok: true });
     state.busy = true;
