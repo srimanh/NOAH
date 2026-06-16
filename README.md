@@ -95,6 +95,8 @@ noah --rpc                        # headless JSON-RPC (embed NOAH)
 noah --list-models                # available models (✓ = ready)
 noah --check "rm -rf /"           # see how the safety gate classifies a command
 noah --log                        # print the audit trail
+noah history                      # what NOAH changed (reversible ops timeline)
+noah undo                         # revert the last reversible change
 noah update                       # upgrade to the latest published version
 noah version                      # print version (and notify if an update exists)
 ```
@@ -111,6 +113,7 @@ available — just run `noah update` to upgrade.
 | `/login` · `/logout` | connect / disconnect a provider |
 | `/caveman` | token-saver terse mode |
 | `/compact` | compress context to save tokens |
+| `/history` · `/undo` | see/revert what NOAH changed |
 | `/extensions` | list loaded extensions + health |
 | `/audit` · `/clear` · `/help` · `/quit` | … |
 
@@ -207,6 +210,21 @@ runtime:
 noah --verify-deps   # ✓ core dependencies verified — all pinned versions intact.
 ```
 
+### ↩️ Reversible by design
+
+Every change NOAH makes (package install/remove, service enable/disable/start/stop)
+is recorded as a **transaction with its inverse** in an append-only ledger
+(`~/.noah/ops.jsonl`). You never have to remember what changed or how to undo it:
+
+```bash
+noah history   # timeline: [reversible] / [undone] / [not reversible]
+noah undo      # replay the inverse of the last reversible op (gated)
+noah undo <id> # revert a specific operation
+```
+
+Irreversible actions (e.g. `update`, `restart`) are still recorded — and clearly
+flagged “not reversible” so there are no surprises.
+
 ---
 
 ## 🧪 Development
@@ -234,7 +252,8 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] Safety gate + audit · dry-run · cross-platform adapters
 - [x] Extensions · benchmark · SDK · RPC
 - [x] Supply-chain hardening (bundled + verified runtime) · update notifications
-- [ ] Undo / rollback of changes (transactional ops + snapshots)
+- [x] Undo / rollback — reversible operations engine (`noah undo` · `noah history`)
+- [ ] Snapshots for file edits/deletes (extend undo coverage)
 - [ ] Playbooks (`/onboard-mac`, `/harden-ssh`)
 - [ ] Proactive health daemon · fleet mode over RPC
 - [ ] Validated Linux GA

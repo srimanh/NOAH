@@ -30,6 +30,10 @@ import { cavemanExtension, isCavemanLevel, CAVEMAN_LEVELS, type CavemanLevel } f
 import { authGate } from "../../agent/auth-gate.js";
 import { getLastModel, setLastModel } from "../../agent/config.js";
 import { checkForUpdate, currentVersion } from "../../agent/update.js";
+import { undo as undoOp } from "../../ops/engine.js";
+import { history as opHistory } from "../../ops/ledger.js";
+import { platform } from "../../platform/adapter.js";
+import type { ToolAction } from "../../ops/types.js";
 import { spawn } from "node:child_process";
 import {
   AssistantBlock,
@@ -377,7 +381,7 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
           `${G.node} NOAH operates your OS from natural language.`,
           "Try: “install htop and start it” · “what’s using port 3000” · “tidy ~/Downloads”.",
           "Tools: bash · files · package · service · network — safety-gated and audited.",
-          "Commands: /model /login /logout /extensions /audit /clear /quit · esc interrupts.",
+          "Commands: /model /login /logout /history /undo /extensions /audit /clear /quit · esc interrupts.",
         ]);
         break;
       case "model":
@@ -475,6 +479,34 @@ export async function runNoahSpace(opts: SpaceOptions): Promise<void> {
               return `${x.ok ? G.check : G.cross} [${x.tool}] ${c}`;
             }),
           ]);
+        break;
+      }
+      case "history": {
+        const items = opHistory();
+        if (!items.length) sys([`${G.node} no operations recorded yet.`]);
+        else
+          sys([
+            `${G.node} operation history (newest first):`,
+            ...items
+              .slice()
+              .reverse()
+              .map((it) => {
+                const tag = it.undone ? "undone" : it.reversible ? "reversible" : "not reversible";
+                return `${it.undone ? G.dot : it.reversible ? G.check : G.cross} [${tag}] ${it.desc}`;
+              }),
+            "undo the last reversible op with /undo",
+          ]);
+        break;
+      }
+      case "undo": {
+        const runInverse = async (a: ToolAction): Promise<string> =>
+          a.tool === "package"
+            ? await platform.pkg(a.action, a.pkg)
+            : await platform.service(a.name, a.action as never);
+        sys([`${G.node} undoing last operation…`]);
+        const res = await undoOp({ id: arg || undefined, run: runInverse });
+        if (res.ok) sys([`${G.check} reverted: ${res.tx?.desc ?? "operation"}`]);
+        else sys([`${G.cross} ${res.reason ?? "undo failed"}`], "warn");
         break;
       }
       case "clear":

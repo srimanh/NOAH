@@ -21,6 +21,11 @@ import { printAuditLog } from "./safety/audit.js";
 import { classify } from "./safety/policy.js";
 import { verifyPinnedDeps, formatViolations } from "./safety/deps.js";
 import { checkForUpdate, currentVersion } from "./agent/update.js";
+import { undo as undoOp } from "./ops/engine.js";
+import { history as opHistory } from "./ops/ledger.js";
+import { formatHistory, formatUndoResult } from "./ops/report.js";
+import { platform } from "./platform/adapter.js";
+import type { ToolAction } from "./ops/types.js";
 import { resolve as resolvePath } from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildRegistry } from "./llm/registry.js";
@@ -52,6 +57,8 @@ Flags:
   --list-models    List available models (✓ = ready) and exit
   --check CMD      Show how NOAH's safety gate would classify a shell command
   --verify-deps    Verify the pinned core runtime tree is intact (supply-chain guard)
+  history          Show recorded operations (what NOAH changed)
+  undo [id]        Revert the last reversible operation (or a specific id)
   update           Upgrade NOAH to the latest published version
   version, -v      Print the version (and any available update)
   --log            Print the audit trail and exit
@@ -78,6 +85,24 @@ async function main(): Promise<void> {
 
   if (argv.includes("--log")) {
     printAuditLog();
+    return;
+  }
+
+  if (argv[0] === "history") {
+    console.log(ui.brand());
+    console.log(formatHistory(opHistory()));
+    return;
+  }
+
+  if (argv[0] === "undo") {
+    console.log(ui.brand());
+    const runInverse = async (a: ToolAction): Promise<string> =>
+      a.tool === "package"
+        ? await platform.pkg(a.action, a.pkg)
+        : await platform.service(a.name, a.action as never);
+    const res = await undoOp({ id: argv[1], run: runInverse });
+    console.log(formatUndoResult(res));
+    process.exitCode = res.ok ? 0 : 1;
     return;
   }
 
