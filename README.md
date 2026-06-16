@@ -224,6 +224,12 @@ noah undo      # replay the inverse of the last reversible op (gated)
 noah undo <id> # revert a specific operation
 ```
 
+**Time Machine** — in the console, every message is a checkpoint. `/rewind` (or
+`/rewind <n>`) rolls the machine back to the state it was in before that message,
+then restores the message text so you can edit and re-run it. `/checkpoints` lists
+them. So if a request changed your system in a way you didn't want, you scroll
+back, rewind, and the filesystem follows.
+
 So if NOAH hardens your `sshd_config`, `noah undo` restores the *exact* prior file
 — and a file NOAH created is removed again. Irreversible actions (e.g. `update`,
 `restart`) are still recorded and clearly flagged “not reversible”, no surprises.
@@ -256,6 +262,8 @@ PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — se
 - [x] Extensions · benchmark · SDK · RPC
 - [x] Supply-chain hardening (bundled + verified runtime) · update notifications
 - [x] Undo / rollback — reversible ops + **file snapshots** (`noah undo` · `noah history`)
+- [x] **Time Machine** — `/rewind` a message to roll back the machine changes it made (`/checkpoints`)
+- [ ] Conversation-memory fork on rewind (truncate model history, not just machine state)
 - [ ] Playbooks (`/onboard-mac`, `/harden-ssh`) — safe because every step is undoable
 - [ ] Skills/extension registry (signed, sandboxed)
 - [ ] Proactive health daemon · fleet mode over RPC
