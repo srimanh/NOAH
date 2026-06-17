@@ -61,11 +61,11 @@ test("release: SECURITY policy exists for a security-focused tool", () => {
 });
 
 test("release: CI runs tests + supply-chain check on push", () => {
-  const ci = root(".github/workflows/ci.yml");
+  const ci = root(".github/workflows/ci-cd.yml");
   assert.ok(existsSync(ci), "CI workflow present");
   const y = readFileSync(ci, "utf8");
-  assert.match(y, /npm (ci|install)/);
-  assert.match(y, /test/);
+  assert.match(y, /npm ci/);
+  assert.match(y, /npm test/);
   assert.match(y, /verify-deps|verify:deps/, "CI runs the integrity guard");
 });
 

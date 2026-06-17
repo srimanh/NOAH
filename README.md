@@ -17,7 +17,7 @@
 [![NOAH CI/CD](https://github.com/srimanh/NOAH/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/srimanh/NOAH/actions/workflows/ci-cd.yml)
 [![license](https://img.shields.io/npm/l/noah-agent.svg)](./LICENSE)
 [![node](https://img.shields.io/node/v/noah-agent.svg)](https://nodejs.org)
-[![tests](https://img.shields.io/badge/tests-180%20passing-brightgreen.svg)](#-development)
+[![tests](https://img.shields.io/badge/tests-330%20passing-brightgreen.svg)](#-development)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-blueviolet.svg)](./CONTRIBUTING.md)
 
 ### 🌐 [**Visit the live site →**](https://srimanh.github.io/NOAH/)
@@ -347,38 +347,75 @@ So if NOAH hardens your `sshd_config`, `noah undo` restores the *exact* prior fi
 git clone https://github.com/srimanh/NOAH
 cd NOAH && npm install
 npm run build
-npm test          # full suite (330 tests)
-npm run dev -- "how healthy is my machine?"
+npm test            # full suite (330 tests, must stay green)
+./scripts/smoke.sh  # end-to-end smoke check
+npm run dev -- "how healthy is my machine?"   # run from source
 ```
+
+Tests live next to the code they cover (`foo.ts` + `foo.test.ts`). Pure logic is
+tested directly; I/O is made testable with **injectable** fs/fetch/ssh/clock —
+unit tests never touch the real system or network.
+
+---
+
+## 🧭 Codebase map
+
+New here? **[ARCHITECTURE.md](./ARCHITECTURE.md)** is the contributor's guide —
+the mental model, the request lifecycle, and where everything lives. The short
+version:
+
+| Area | Path | What it does |
+|---|---|---|
+| Entry / wiring | `src/cli.ts` · `src/runtime.ts` | Route commands; assemble the agent (prompt + tools + extensions) |
+| Safety | `src/safety/` | The gate (`deny`/`confirm`/`allow`), audit log, supply-chain guard |
+| Reversibility | `src/ops/` | Ledger, inverses, snapshots, `undo`, `rewind` — the crown jewel |
+| Tools | `src/tools/` | What the agent can do (package·service·network·system·logs) |
+| Platform | `src/platform/` | The only place that knows apt/brew/systemd/launchd |
+| Telemetry | `src/sys/` | Probe → health rules → `doctor` |
+| Capabilities | `src/playbooks/` · `src/skills/` · `src/memory/` · `src/sentinel/` · `src/fleet/` · `src/report/` | Playbooks · Skills · Recall · Sentinel · Fleet · Black Box |
+| Interface | `src/tui/` · `src/ui/` · `src/llm/` | The console, rendering, model providers |
+
+> **The one rule:** every action is **gated**, **audited**, and **reversible**.
+> If a change can't be, redesign it until it can — that's the trunk the whole
+> codebase grows from.
 
 ---
 
 ## 🤝 Contributing
 
-PRs welcome! NOAH is built with strict **Red → Green → Refactor** TDD — see
-[CONTRIBUTING.md](./CONTRIBUTING.md) and our [Code of Conduct](./CODE_OF_CONDUCT.md).
+PRs welcome — and easy to start. Read **[ARCHITECTURE.md](./ARCHITECTURE.md)**
+(codebase tour) and **[CONTRIBUTING.md](./CONTRIBUTING.md)** (the TDD workflow),
+then pick a first issue. Good starter areas: a new built-in **playbook**
+(`src/playbooks/builtins.ts`) or a **health rule** (`src/sys/health.ts`) — both
+are pure, easy-to-test additions.
+
+Want the *why* behind NOAH? **[docs/STORY.md](./docs/STORY.md)** tells it as
+user stories, from pain point to solution. By contributing you agree to our
+[Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Telemetry-grounded analysis · dashboard · `doctor`
-- [x] Safety gate + audit · dry-run · cross-platform adapters
-- [x] Extensions · benchmark · SDK · RPC
-- [x] Supply-chain hardening (bundled + verified runtime) · update notifications
-- [x] Undo / rollback — reversible ops + **file snapshots** (`noah undo` · `noah history`)
-- [x] **Time Machine** — `/rewind` a message to roll back the machine changes it made (`/checkpoints`)
+**Shipped (1.0)** — eight phases, each gated, audited, reversible:
+
+- [x] Foundation — telemetry `doctor` · safety gate + audit · dry-run · cross-platform · extensions · benchmark · SDK · RPC · supply-chain hardening
+- [x] **Time Machine** — `/rewind` a message to roll the machine back (`/checkpoints`)
+- [x] **Reversibility** — `noah undo` / `noah history` + file snapshots
+- [x] **Playbooks** — curated, gated, reversible recipes (`noah run`)
+- [x] **Skills** — signed + permission-scoped capability packages (`noah skills`)
+- [x] **Recall** — local memory injected into context (`noah memory`)
+- [x] **Sentinel** — proactive health watch (`noah watch`)
+- [x] **Fleet** — many machines over SSH (`noah fleet`)
+- [x] **Black Box** — signed incident reports (`noah report`)
+- [x] **GA 1.0** — CI · hardening · semver-1.0 stability contract 🎉
+
+**Post-1.0 ideas** (contributions welcome):
+
 - [ ] Conversation-memory fork on rewind (truncate model history, not just machine state)
-- [x] **Playbooks** — curated, gated, reversible recipes (`noah run harden-ssh`)
-- [x] **Skills** — signed (ed25519) + permission-scoped capability packages (`noah skills`)
-- [x] **Recall** — local memory of your machine/preferences, injected into context (`noah memory`)
-- [x] **Sentinel** — proactive health watch that alerts when problems appear (`noah watch`)
-- [x] **Fleet** — query many machines over SSH; safety-gated fan-out (`noah fleet`)
-- [x] **Black Box** — signed, reproducible incident reports from the logs (`noah report`)
-- [x] **GA 1.0** — CI, hardening, semver-1.0 stability contract 🎉
-- [ ] Post-1.0: remote skill registry · conversation-memory fork · fleet-wide playbooks · Windows adapter
-- [ ] Proactive health daemon · fleet mode over RPC
-- [ ] Validated Linux GA
+- [ ] Remote skill registry (search/publish over the network)
+- [ ] Fleet-wide playbooks with per-host approval
+- [ ] Embeddings-based recall · Sentinel auto-remediation · Windows adapter
 
 ---
 

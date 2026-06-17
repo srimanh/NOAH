@@ -46,6 +46,9 @@ jobs:
       - name: Run test suite
         run: npm test
 
+      - name: Supply-chain integrity (pinned + bundled core runtime)
+        run: npm run verify:deps
+
       - name: Verify package contents
         if: matrix.node-version == '24'
         run: npm pack --dry-run
